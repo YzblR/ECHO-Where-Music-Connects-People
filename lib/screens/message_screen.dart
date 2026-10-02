@@ -147,12 +147,17 @@ class _MessageScreenState extends State<MessageScreen> {
                     onPressed: () {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                          content: Text('New message feature is coming soon.'),
+                          content: Text(
+                            'New message feature is coming soon.',
+                          ),
                           behavior: SnackBarBehavior.floating,
                         ),
                       );
                     },
-                    icon: const Icon(Icons.edit_outlined, size: 24),
+                    icon: const Icon(
+                      Icons.edit_outlined,
+                      size: 24,
+                    ),
                   ),
                 ],
               ),
@@ -161,6 +166,7 @@ class _MessageScreenState extends State<MessageScreen> {
             // ==========================================================
             // SEARCH
             // ==========================================================
+
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: TextField(
@@ -174,21 +180,32 @@ class _MessageScreenState extends State<MessageScreen> {
                     color: Colors.grey.shade500,
                     fontSize: 14,
                   ),
-                  prefixIcon: const Icon(Icons.search_rounded, size: 21),
+                  prefixIcon: const Icon(
+                    Icons.search_rounded,
+                    size: 21,
+                  ),
                   filled: true,
                   fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 12),
+                  contentPadding: const EdgeInsets.symmetric(
+                    vertical: 12,
+                  ),
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(color: Colors.grey.shade200),
+                    borderSide: BorderSide(
+                      color: Colors.grey.shade200,
+                    ),
                   ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: BorderSide(color: Colors.grey.shade200),
+                    borderSide: BorderSide(
+                      color: Colors.grey.shade200,
+                    ),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(14),
-                    borderSide: const BorderSide(color: EchoColors.primary),
+                    borderSide: const BorderSide(
+                      color: EchoColors.primary,
+                    ),
                   ),
                 ),
               ),
@@ -199,6 +216,7 @@ class _MessageScreenState extends State<MessageScreen> {
             // ==========================================================
             // CONVERSATIONS
             // ==========================================================
+
             Expanded(
               child: filteredConversations.isEmpty
                   ? Center(
@@ -242,13 +260,19 @@ class _MessageScreenState extends State<MessageScreen> {
                       ),
                     )
                   : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(20, 5, 20, 20),
+                      padding: const EdgeInsets.fromLTRB(
+                        20,
+                        5,
+                        20,
+                        20,
+                      ),
                       itemCount: filteredConversations.length,
                       separatorBuilder: (context, index) {
                         return const SizedBox(height: 5);
                       },
                       itemBuilder: (context, index) {
-                        final conversation = filteredConversations[index];
+                        final conversation =
+                            filteredConversations[index];
 
                         return ConversationTile(
                           name: conversation['name'],
@@ -257,18 +281,21 @@ class _MessageScreenState extends State<MessageScreen> {
                           time: conversation['time'],
                           unread: conversation['unread'],
                           onTap: () async {
-                            final result = await Navigator.push<String>(
+                            final result =
+                                await Navigator.push<String>(
                               context,
                               MaterialPageRoute(
                                 builder: (context) => ChatScreen(
                                   name: conversation['name'],
                                   username: conversation['username'],
-                                  initialMessage: conversation['message'],
+                                  initialMessage:
+                                      conversation['message'],
                                 ),
                               ),
                             );
 
-                            if (result != null && result.trim().isNotEmpty) {
+                            if (result != null &&
+                                result.trim().isNotEmpty) {
                               setState(() {
                                 conversation['message'] = result;
                                 conversation['time'] = 'now';
@@ -284,11 +311,16 @@ class _MessageScreenState extends State<MessageScreen> {
             // ==========================================================
             // BOTTOM NAVIGATION
             // ==========================================================
+
             Container(
               height: 68,
               decoration: BoxDecoration(
                 color: Colors.white,
-                border: Border(top: BorderSide(color: Colors.grey.shade200)),
+                border: Border(
+                  top: BorderSide(
+                    color: Colors.grey.shade200,
+                  ),
+                ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
@@ -313,9 +345,9 @@ class _MessageScreenState extends State<MessageScreen> {
                     child: Container(
                       width: 48,
                       height: 48,
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         color: EchoColors.primary,
-                        borderRadius: BorderRadius.circular(16),
+                        shape: BoxShape.circle,
                       ),
                       child: const Icon(
                         Icons.add_rounded,
@@ -376,14 +408,21 @@ class ConversationTile extends StatelessWidget {
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 3),
+        padding: const EdgeInsets.symmetric(
+          vertical: 9,
+          horizontal: 3,
+        ),
         child: Row(
           children: [
             // AVATAR
             const CircleAvatar(
               radius: 27,
               backgroundColor: Color(0xFFF4AFC8),
-              child: Icon(Icons.person_rounded, color: Colors.white, size: 29),
+              child: Icon(
+                Icons.person_rounded,
+                color: Colors.white,
+                size: 29,
+              ),
             ),
 
             const SizedBox(width: 13),
@@ -487,7 +526,8 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  final TextEditingController messageController = TextEditingController();
+  final TextEditingController messageController =
+      TextEditingController();
 
   final List<Map<String, dynamic>> messages = [];
 
@@ -495,7 +535,10 @@ class _ChatScreenState extends State<ChatScreen> {
   void initState() {
     super.initState();
 
-    messages.add({'text': widget.initialMessage, 'isMe': false});
+    messages.add({
+      'text': widget.initialMessage,
+      'isMe': false,
+    });
 
     messages.add({
       'text': 'I know right! I have been listening to it all day.',
@@ -521,7 +564,10 @@ class _ChatScreenState extends State<ChatScreen> {
     }
 
     setState(() {
-      messages.add({'text': text, 'isMe': true});
+      messages.add({
+        'text': text,
+        'isMe': true,
+      });
     });
 
     messageController.clear();
@@ -553,7 +599,9 @@ class _ChatScreenState extends State<ChatScreen> {
 
             Navigator.pop(
               context,
-              lastMyMessage.isNotEmpty ? lastMyMessage.last['text'] : null,
+              lastMyMessage.isNotEmpty
+                  ? lastMyMessage.last['text']
+                  : null,
             );
           },
         ),
@@ -565,7 +613,11 @@ class _ChatScreenState extends State<ChatScreen> {
             const CircleAvatar(
               radius: 19,
               backgroundColor: Color(0xFFF4AFC8),
-              child: Icon(Icons.person_rounded, color: Colors.white, size: 21),
+              child: Icon(
+                Icons.person_rounded,
+                color: Colors.white,
+                size: 21,
+              ),
             ),
 
             const SizedBox(width: 10),
@@ -584,7 +636,10 @@ class _ChatScreenState extends State<ChatScreen> {
 
                 Text(
                   widget.username,
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 11,
+                  ),
                 ),
               ],
             ),
@@ -596,12 +651,17 @@ class _ChatScreenState extends State<ChatScreen> {
             onPressed: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('More options coming soon.'),
+                  content: Text(
+                    'More options coming soon.',
+                  ),
                   behavior: SnackBarBehavior.floating,
                 ),
               );
             },
-            icon: const Icon(Icons.more_horiz_rounded, color: Colors.black),
+            icon: const Icon(
+              Icons.more_horiz_rounded,
+              color: Colors.black,
+            ),
           ),
         ],
       ),
@@ -614,12 +674,20 @@ class _ChatScreenState extends State<ChatScreen> {
 
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(18, 20, 18, 15),
+              padding: const EdgeInsets.fromLTRB(
+                18,
+                20,
+                18,
+                15,
+              ),
               itemCount: messages.length,
               itemBuilder: (context, index) {
                 final message = messages[index];
 
-                return ChatBubble(text: message['text'], isMe: message['isMe']);
+                return ChatBubble(
+                  text: message['text'],
+                  isMe: message['isMe'],
+                );
               },
             ),
           ),
@@ -627,11 +695,21 @@ class _ChatScreenState extends State<ChatScreen> {
           // ==========================================================
           // MESSAGE INPUT
           // ==========================================================
+
           Container(
-            padding: const EdgeInsets.fromLTRB(15, 10, 15, 12),
+            padding: const EdgeInsets.fromLTRB(
+              15,
+              10,
+              15,
+              12,
+            ),
             decoration: BoxDecoration(
               color: Colors.white,
-              border: Border(top: BorderSide(color: Colors.grey.shade200)),
+              border: Border(
+                top: BorderSide(
+                  color: Colors.grey.shade200,
+                ),
+              ),
             ),
             child: SafeArea(
               top: false,
@@ -652,12 +730,14 @@ class _ChatScreenState extends State<ChatScreen> {
                         ),
                         filled: true,
                         fillColor: const Color(0xFFF6F6F6),
-                        contentPadding: const EdgeInsets.symmetric(
+                        contentPadding:
+                            const EdgeInsets.symmetric(
                           horizontal: 16,
                           vertical: 11,
                         ),
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(22),
+                          borderRadius:
+                              BorderRadius.circular(22),
                           borderSide: BorderSide.none,
                         ),
                       ),
@@ -700,34 +780,55 @@ class ChatBubble extends StatelessWidget {
   final String text;
   final bool isMe;
 
-  const ChatBubble({super.key, required this.text, required this.isMe});
+  const ChatBubble({
+    super.key,
+    required this.text,
+    required this.isMe,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Align(
-      alignment: isMe ? Alignment.centerRight : Alignment.centerLeft,
+      alignment:
+          isMe ? Alignment.centerRight : Alignment.centerLeft,
       child: Container(
         constraints: BoxConstraints(
-          maxWidth: MediaQuery.of(context).size.width * 0.72,
+          maxWidth:
+              MediaQuery.of(context).size.width * 0.72,
         ),
         margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 11),
+        padding: const EdgeInsets.symmetric(
+          horizontal: 15,
+          vertical: 11,
+        ),
         decoration: BoxDecoration(
-          color: isMe ? EchoColors.primary : Colors.white,
+          color: isMe
+              ? EchoColors.primary
+              : Colors.white,
           borderRadius: BorderRadius.only(
             topLeft: const Radius.circular(17),
             topRight: const Radius.circular(17),
-            bottomLeft: Radius.circular(isMe ? 17 : 4),
-            bottomRight: Radius.circular(isMe ? 4 : 17),
+            bottomLeft: Radius.circular(
+              isMe ? 17 : 4,
+            ),
+            bottomRight: Radius.circular(
+              isMe ? 4 : 17,
+            ),
           ),
-          border: isMe ? null : Border.all(color: Colors.grey.shade200),
+          border: isMe
+              ? null
+              : Border.all(
+                  color: Colors.grey.shade200,
+                ),
         ),
         child: Text(
           text,
           style: TextStyle(
             fontSize: 13,
             height: 1.35,
-            color: isMe ? Colors.white : Colors.black87,
+            color: isMe
+                ? Colors.white
+                : Colors.black87,
           ),
         ),
       ),
@@ -758,7 +859,9 @@ class BottomNavIcon extends StatelessWidget {
       icon: Icon(
         icon,
         size: 25,
-        color: selected ? EchoColors.primary : Colors.grey,
+        color: selected
+            ? EchoColors.primary
+            : Colors.grey,
       ),
     );
   }

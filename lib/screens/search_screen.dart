@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import '../theme.dart';
 import 'home_screen.dart';
 import 'create_post_screen.dart';
+import 'message_screen.dart';
+import 'profile_screen.dart';
 
 class SearchScreen extends StatefulWidget {
   const SearchScreen({super.key});
@@ -38,12 +40,17 @@ class _SearchScreenState extends State<SearchScreen> {
     );
   }
 
-  void showComingSoon(String pageName) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('$pageName screen is coming soon.'),
-        duration: const Duration(seconds: 2),
-      ),
+  void goToMessages() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const MessageScreen()),
+    );
+  }
+
+  void goToProfile() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (context) => const ProfileScreen()),
     );
   }
 
@@ -83,7 +90,8 @@ class _SearchScreenState extends State<SearchScreen> {
                                   color: Colors.black87,
                                 ),
                                 decoration: const InputDecoration(
-                                  hintText: 'Search songs, artists, playlists, or people...',
+                                  hintText:
+                                      'Search songs, artists, playlists, or people...',
                                   hintStyle: TextStyle(
                                     fontSize: 13,
                                     color: Color(0xFF777777),
@@ -120,6 +128,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     // =====================================================
                     // POPULAR ARTISTS
                     // =====================================================
+
                     const SectionHeader(title: 'Popular Artists'),
 
                     const SizedBox(height: 12),
@@ -159,6 +168,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     // =====================================================
                     // TRENDING PLAYLISTS
                     // =====================================================
+
                     const SectionHeader(title: 'Trending Playlists'),
 
                     const SizedBox(height: 12),
@@ -198,6 +208,7 @@ class _SearchScreenState extends State<SearchScreen> {
                     // =====================================================
                     // PEOPLE YOU MAY KNOW
                     // =====================================================
+
                     const SectionHeader(title: 'People you may know'),
 
                     const SizedBox(height: 12),
@@ -228,68 +239,86 @@ class _SearchScreenState extends State<SearchScreen> {
 
             // =============================================================
             // BOTTOM NAVIGATION
+            // HOME → SEARCH → + → MESSAGES → PROFILE
             // =============================================================
+
             Container(
               height: 66,
               decoration: const BoxDecoration(
                 color: Colors.white,
-                border: Border(top: BorderSide(color: Color(0xFFE5E5E5))),
+                border: Border(
+                  top: BorderSide(
+                    color: Color(0xFFE5E5E5),
+                  ),
+                ),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
+                  // =======================================================
                   // HOME
+                  // =======================================================
+
                   SearchBottomNavIcon(
                     icon: Icons.home_rounded,
                     selected: false,
                     onTap: goToHome,
                   ),
 
+                  // =======================================================
                   // SEARCH
+                  // =======================================================
+
                   SearchBottomNavIcon(
                     icon: Icons.search_rounded,
                     selected: true,
-                    onTap: () {
-                      // Already on Search
-                    },
+                    onTap: () {},
                   ),
 
+                  // =======================================================
                   // CREATE POST
+                  // =======================================================
+
                   GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: goToCreatePost,
-                    child: Container(
+                    child: SizedBox(
                       width: 50,
                       height: 50,
-                      alignment: Alignment.center,
-                      decoration: const BoxDecoration(
-                        color: EchoColors.primary,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.add,
-                        color: Colors.white,
-                        size: 28,
+                      child: DecoratedBox(
+                        decoration: const BoxDecoration(
+                          color: EchoColors.primary,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Center(
+                          child: Icon(
+                            Icons.add,
+                            color: Colors.white,
+                            size: 28,
+                          ),
+                        ),
                       ),
                     ),
                   ),
 
-                  // CHAT
+                  // =======================================================
+                  // MESSAGES
+                  // =======================================================
+
                   SearchBottomNavIcon(
                     icon: Icons.chat_bubble_outline_rounded,
                     selected: false,
-                    onTap: () {
-                      showComingSoon('Chat');
-                    },
+                    onTap: goToMessages,
                   ),
 
+                  // =======================================================
                   // PROFILE
+                  // =======================================================
+
                   SearchBottomNavIcon(
                     icon: Icons.person_outline_rounded,
                     selected: false,
-                    onTap: () {
-                      showComingSoon('Profile');
-                    },
+                    onTap: goToProfile,
                   ),
                 ],
               ),
@@ -308,7 +337,10 @@ class _SearchScreenState extends State<SearchScreen> {
 class SectionHeader extends StatelessWidget {
   final String title;
 
-  const SectionHeader({super.key, required this.title});
+  const SectionHeader({
+    super.key,
+    required this.title,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -352,7 +384,11 @@ class ArtistItem extends StatelessWidget {
   final String name;
   final String image;
 
-  const ArtistItem({super.key, required this.name, required this.image});
+  const ArtistItem({
+    super.key,
+    required this.name,
+    required this.image,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -369,7 +405,14 @@ class ArtistItem extends StatelessWidget {
             ),
             child: CircleAvatar(
               radius: 29,
+              backgroundColor: EchoColors.secondary,
               backgroundImage: NetworkImage(image),
+              onBackgroundImageError: (_, __) {},
+              child: const Icon(
+                Icons.person,
+                color: Colors.white,
+                size: 28,
+              ),
             ),
           ),
 
@@ -427,6 +470,21 @@ class PlaylistCard extends StatelessWidget {
                   width: 125,
                   height: 125,
                   fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      width: 125,
+                      height: 125,
+                      decoration: BoxDecoration(
+                        color: EchoColors.secondary,
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Icon(
+                        Icons.music_note_rounded,
+                        color: Colors.white,
+                        size: 40,
+                      ),
+                    );
+                  },
                 ),
               ),
 
@@ -478,7 +536,10 @@ class PlaylistCard extends StatelessWidget {
 
           Text(
             followers,
-            style: const TextStyle(fontSize: 12, color: Color(0xFF777777)),
+            style: const TextStyle(
+              fontSize: 12,
+              color: Color(0xFF777777),
+            ),
           ),
         ],
       ),
@@ -508,7 +569,17 @@ class PersonItem extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(18, 0, 18, 13),
       child: Row(
         children: [
-          CircleAvatar(radius: 20, backgroundImage: NetworkImage(image)),
+          CircleAvatar(
+            radius: 20,
+            backgroundColor: EchoColors.secondary,
+            backgroundImage: NetworkImage(image),
+            onBackgroundImageError: (_, __) {},
+            child: const Icon(
+              Icons.person,
+              color: Colors.white,
+              size: 22,
+            ),
+          ),
 
           const SizedBox(width: 12),
 
@@ -544,7 +615,9 @@ class PersonItem extends StatelessWidget {
             child: OutlinedButton(
               onPressed: () {},
               style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: EchoColors.primary),
+                side: const BorderSide(
+                  color: EchoColors.primary,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),

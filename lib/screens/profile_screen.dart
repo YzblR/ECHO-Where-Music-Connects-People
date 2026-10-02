@@ -1,4 +1,7 @@
+import 'dart:typed_data';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../theme.dart';
 import 'home_screen.dart';
@@ -15,6 +18,39 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   int selectedTab = 0;
+
+  // ============================================================
+  // PROFILE PICTURE
+  // ============================================================
+
+  final ImagePicker imagePicker = ImagePicker();
+  Uint8List? profileImageBytes;
+
+  Future<void> pickProfileImage() async {
+    try {
+      final XFile? image = await imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
+
+      if (image == null) return;
+
+      final Uint8List bytes = await image.readAsBytes();
+
+      setState(() {
+        profileImageBytes = bytes;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not select profile picture: $e'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
 
   // ============================================================
   // NAVIGATION
@@ -123,9 +159,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 _EditProfileOption(
                   icon: Icons.camera_alt_outlined,
                   title: 'Change Profile Picture',
-                  onTap: () {
+                  onTap: () async {
                     Navigator.pop(context);
-                    showComingSoon('Change Profile Picture');
+                    await pickProfileImage();
                   },
                 ),
 
@@ -175,7 +211,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             onPressed: () {
                               showComingSoon('Settings');
                             },
-                            icon: const Icon(Icons.settings_outlined, size: 25),
+                            icon: const Icon(
+                              Icons.settings_outlined,
+                              size: 25,
+                            ),
                           ),
                         ],
                       ),
@@ -191,23 +230,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       child: Column(
                         children: [
                           // Profile picture
-                          Container(
-                            width: 105,
-                            height: 105,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: EchoColors.primary,
-                                width: 3,
+                          GestureDetector(
+                            onTap: pickProfileImage,
+                            child: Container(
+                              width: 105,
+                              height: 105,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: EchoColors.primary,
+                                  width: 3,
+                                ),
                               ),
-                            ),
-                            padding: const EdgeInsets.all(3),
-                            child: const CircleAvatar(
-                              backgroundColor: Color(0xFFF4AFC8),
-                              child: Icon(
-                                Icons.person_rounded,
-                                size: 55,
-                                color: Colors.white,
+                              padding: const EdgeInsets.all(3),
+                              child: CircleAvatar(
+                                backgroundColor: const Color(0xFFF4AFC8),
+                                backgroundImage: profileImageBytes != null
+                                    ? MemoryImage(profileImageBytes!)
+                                    : null,
+                                child: profileImageBytes == null
+                                    ? const Icon(
+                                        Icons.person_rounded,
+                                        size: 55,
+                                        color: Colors.white,
+                                      )
+                                    : null,
                               ),
                             ),
                           ),
@@ -256,7 +303,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const _ProfileStat(number: '12', label: 'Posts'),
+                              const _ProfileStat(
+                                number: '12',
+                                label: 'Posts',
+                              ),
 
                               const _StatDivider(),
 
@@ -367,7 +417,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           MusicPostCard(
                             songTitle: 'Snooze',
                             artist: 'SZA',
-                            caption: 'This song has been on repeat lately 🎧',
+                            caption:
+                                'This song has been on repeat lately 🎧',
                             likes: '42',
                             comments: '8',
                           ),
@@ -397,7 +448,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           MusicPostCard(
                             songTitle: 'Super Shy',
                             artist: 'NewJeans',
-                            caption: 'Adding this one to my playlist again 💗',
+                            caption:
+                                'Adding this one to my playlist again 💗',
                             likes: '63',
                             comments: '14',
                           ),
@@ -503,15 +555,15 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     onTap: goToSearch,
                   ),
 
-                  // PLUS
+                  // PLUS - PERFECT CIRCLE
                   GestureDetector(
                     onTap: goToCreatePost,
                     child: Container(
                       width: 48,
                       height: 48,
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         color: EchoColors.primary,
-                        borderRadius: BorderRadius.circular(16),
+                        shape: BoxShape.circle,
                       ),
                       child: const Icon(
                         Icons.add_rounded,
@@ -564,7 +616,9 @@ class _ProfileStat extends StatelessWidget {
             number,
             style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
+
           const SizedBox(height: 3),
+
           Text(
             label,
             style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
@@ -683,6 +737,7 @@ class MusicPostCard extends StatelessWidget {
                     'Yzabela',
                     style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                   ),
+
                   Text(
                     '@yzabela',
                     style: TextStyle(color: Colors.grey, fontSize: 11),

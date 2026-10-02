@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../theme.dart';
 
@@ -10,7 +13,10 @@ class CreatePostScreen extends StatefulWidget {
 }
 
 class _CreatePostScreenState extends State<CreatePostScreen> {
-  final TextEditingController captionController = TextEditingController();
+  final TextEditingController captionController =
+      TextEditingController();
+
+  final ImagePicker imagePicker = ImagePicker();
 
   String selectedPostType = 'Music';
 
@@ -18,6 +24,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   String? selectedArtist;
   String? selectedPlaylist;
   String? selectedSongCount;
+
+  // Stores the selected image as Base64.
+  // This allows the image to be passed to the Home Feed.
+  String? selectedImageBase64;
 
   final List<Map<String, String>> musicOptions = [
     {'title': 'Snooze', 'artist': 'SZA'},
@@ -34,13 +44,56 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     {'title': 'Late Night Thoughts', 'songs': '18 songs'},
     {'title': 'Main Character', 'songs': '15 songs'},
     {'title': 'Soft Hours', 'songs': '12 songs'},
-    {'title': '1,2,3 kanya kanya na toh', 'songs': '30 songs'},
+    {
+      'title': '1,2,3 kanya kanya na toh',
+      'songs': '30 songs',
+    },
   ];
 
   @override
   void dispose() {
     captionController.dispose();
     super.dispose();
+  }
+
+  // =====================================================
+  // PICK IMAGE
+  // =====================================================
+
+  Future<void> pickImage() async {
+    try {
+      final XFile? image = await imagePicker.pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 85,
+      );
+
+      if (image == null) {
+        return;
+      }
+
+      final bytes = await image.readAsBytes();
+
+      setState(() {
+        selectedImageBase64 = base64Encode(bytes);
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not select image: $e'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  // =====================================================
+  // REMOVE IMAGE
+  // =====================================================
+
+  void removeImage() {
+    setState(() {
+      selectedImageBase64 = null;
+    });
   }
 
   // =====================================================
@@ -60,6 +113,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       return;
     }
 
+    // -----------------------------------------------------
+    // MUSIC POST
+    // -----------------------------------------------------
+
     if (selectedPostType == 'Music') {
       if (selectedSong == null) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -71,13 +128,23 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         return;
       }
 
-      Navigator.pop(context, <String, String>{
-        'type': 'Music',
-        'caption': caption,
-        'songTitle': selectedSong!,
-        'artist': selectedArtist ?? '',
-      });
-    } else {
+      Navigator.pop(
+        context,
+        <String, String>{
+          'type': 'Music',
+          'caption': caption,
+          'songTitle': selectedSong!,
+          'artist': selectedArtist ?? '',
+          'imageBase64': selectedImageBase64 ?? '',
+        },
+      );
+    }
+
+    // -----------------------------------------------------
+    // PLAYLIST POST
+    // -----------------------------------------------------
+
+    else {
       if (selectedPlaylist == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -88,12 +155,16 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
         return;
       }
 
-      Navigator.pop(context, <String, String>{
-        'type': 'Playlist',
-        'caption': caption,
-        'playlistTitle': selectedPlaylist!,
-        'songCount': selectedSongCount ?? '',
-      });
+      Navigator.pop(
+        context,
+        <String, String>{
+          'type': 'Playlist',
+          'caption': caption,
+          'playlistTitle': selectedPlaylist!,
+          'songCount': selectedSongCount ?? '',
+          'imageBase64': selectedImageBase64 ?? '',
+        },
+      );
     }
   }
 
@@ -107,23 +178,26 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(24),
+        ),
       ),
       builder: (context) {
         return SafeArea(
           child: SizedBox(
-            height: MediaQuery.of(context).size.height * 0.75,
+            height:
+                MediaQuery.of(context).size.height * 0.75,
             child: Column(
               children: [
                 const SizedBox(height: 12),
 
-                // Drag indicator
                 Container(
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
                     color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius:
+                        BorderRadius.circular(10),
                   ),
                 ),
 
@@ -131,45 +205,65 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
                 const Text(
                   'Choose a Song',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
 
                 const SizedBox(height: 12),
 
-                // Scrollable song list
                 Expanded(
                   child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    padding:
+                        const EdgeInsets.symmetric(
+                      horizontal: 20,
+                    ),
                     itemCount: musicOptions.length,
                     itemBuilder: (context, index) {
-                      final music = musicOptions[index];
+                      final music =
+                          musicOptions[index];
 
                       return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                        contentPadding:
+                            const EdgeInsets.symmetric(
+                          vertical: 4,
+                        ),
                         leading: CircleAvatar(
-                          backgroundColor: EchoColors.secondary,
+                          backgroundColor:
+                              EchoColors.secondary,
                           child: const Icon(
                             Icons.music_note,
-                            color: EchoColors.primary,
+                            color:
+                                EchoColors.primary,
                           ),
                         ),
                         title: Text(
                           music['title']!,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
+                          style:
+                              const TextStyle(
+                            fontWeight:
+                                FontWeight.w600,
+                          ),
                         ),
-                        subtitle: Text(music['artist']!),
-                        trailing: const Icon(
+                        subtitle:
+                            Text(music['artist']!),
+                        trailing:
+                            const Icon(
                           Icons.chevron_right,
                           color: Colors.grey,
                         ),
                         onTap: () {
                           setState(() {
-                            selectedSong = music['title'];
-                            selectedArtist = music['artist'];
+                            selectedSong =
+                                music['title'];
+                            selectedArtist =
+                                music['artist'];
 
-                            // Clear playlist selection
-                            selectedPlaylist = null;
-                            selectedSongCount = null;
+                            selectedPlaylist =
+                                null;
+                            selectedSongCount =
+                                null;
                           });
 
                           Navigator.pop(context);
@@ -196,23 +290,26 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(24),
+        ),
       ),
       builder: (context) {
         return SafeArea(
           child: SizedBox(
-            height: MediaQuery.of(context).size.height * 0.65,
+            height:
+                MediaQuery.of(context).size.height * 0.65,
             child: Column(
               children: [
                 const SizedBox(height: 12),
 
-                // Drag indicator
                 Container(
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
                     color: Colors.grey.shade300,
-                    borderRadius: BorderRadius.circular(10),
+                    borderRadius:
+                        BorderRadius.circular(10),
                   ),
                 ),
 
@@ -220,43 +317,62 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
                 const Text(
                   'Choose a Playlist',
-                  style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                  style: TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
 
                 const SizedBox(height: 12),
 
-                // Scrollable playlist list
                 Expanded(
                   child: ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: playlistOptions.length,
+                    padding:
+                        const EdgeInsets.symmetric(
+                      horizontal: 20,
+                    ),
+                    itemCount:
+                        playlistOptions.length,
                     itemBuilder: (context, index) {
-                      final playlist = playlistOptions[index];
+                      final playlist =
+                          playlistOptions[index];
 
                       return ListTile(
-                        contentPadding: const EdgeInsets.symmetric(vertical: 4),
+                        contentPadding:
+                            const EdgeInsets.symmetric(
+                          vertical: 4,
+                        ),
                         leading: CircleAvatar(
-                          backgroundColor: EchoColors.secondary,
+                          backgroundColor:
+                              EchoColors.secondary,
                           child: const Icon(
                             Icons.queue_music,
-                            color: EchoColors.primary,
+                            color:
+                                EchoColors.primary,
                           ),
                         ),
                         title: Text(
                           playlist['title']!,
-                          style: const TextStyle(fontWeight: FontWeight.w600),
+                          style:
+                              const TextStyle(
+                            fontWeight:
+                                FontWeight.w600,
+                          ),
                         ),
-                        subtitle: Text(playlist['songs']!),
-                        trailing: const Icon(
+                        subtitle:
+                            Text(playlist['songs']!),
+                        trailing:
+                            const Icon(
                           Icons.chevron_right,
                           color: Colors.grey,
                         ),
                         onTap: () {
                           setState(() {
-                            selectedPlaylist = playlist['title'];
-                            selectedSongCount = playlist['songs'];
+                            selectedPlaylist =
+                                playlist['title'];
+                            selectedSongCount =
+                                playlist['songs'];
 
-                            // Clear music selection
                             selectedSong = null;
                             selectedArtist = null;
                           });
@@ -281,7 +397,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bool isMusic = selectedPostType == 'Music';
+    final bool isMusic =
+        selectedPostType == 'Music';
 
     return Scaffold(
       backgroundColor: EchoColors.background,
@@ -289,13 +406,17 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       // =================================================
       // APP BAR
       // =================================================
+
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: true,
 
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: const Icon(
+            Icons.arrow_back,
+            color: Colors.black,
+          ),
           onPressed: () {
             Navigator.pop(context);
           },
@@ -328,10 +449,12 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
       // =================================================
       // BODY
       // =================================================
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),
         child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment:
+              CrossAxisAlignment.start,
           children: [
             // =============================================
             // USER INFORMATION
@@ -341,7 +464,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
               children: [
                 const CircleAvatar(
                   radius: 24,
-                  backgroundColor: EchoColors.secondary,
+                  backgroundColor:
+                      EchoColors.secondary,
                   child: Icon(
                     Icons.person,
                     color: EchoColors.primary,
@@ -352,18 +476,23 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 const SizedBox(width: 12),
 
                 const Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Yzabela',
                       style: TextStyle(
                         fontSize: 15,
-                        fontWeight: FontWeight.bold,
+                        fontWeight:
+                            FontWeight.bold,
                       ),
                     ),
                     Text(
                       '@yzabela',
-                      style: TextStyle(color: Colors.grey, fontSize: 12),
+                      style: TextStyle(
+                        color: Colors.grey,
+                        fontSize: 12,
+                      ),
                     ),
                   ],
                 ),
@@ -375,9 +504,13 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             // =============================================
             // CAPTION
             // =============================================
+
             const Text(
               'What are you listening to?',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
             ),
 
             const SizedBox(height: 12),
@@ -389,22 +522,135 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                 setState(() {});
               },
               decoration: InputDecoration(
-                hintText: 'Share your thoughts about this song...',
+                hintText:
+                    'Share your thoughts about this song...',
                 filled: true,
                 fillColor: Colors.white,
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius:
+                      BorderRadius.circular(16),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding: const EdgeInsets.all(16),
+                contentPadding:
+                    const EdgeInsets.all(16),
               ),
             ),
+
+            const SizedBox(height: 16),
+
+            // =============================================
+            // ADD PHOTO
+            // =============================================
+
+            GestureDetector(
+              onTap: pickImage,
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                  vertical: 14,
+                  horizontal: 16,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius:
+                      BorderRadius.circular(14),
+                  border: Border.all(
+                    color: EchoColors.secondary,
+                    width: 1.2,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: EchoColors.secondary,
+                        borderRadius:
+                            BorderRadius.circular(10),
+                      ),
+                      child: const Icon(
+                        Icons.add_photo_alternate_outlined,
+                        color: EchoColors.primary,
+                      ),
+                    ),
+
+                    const SizedBox(width: 12),
+
+                    Expanded(
+                      child: Text(
+                        selectedImageBase64 == null
+                            ? 'Add Photo'
+                            : 'Change Photo',
+                        style: const TextStyle(
+                          fontWeight:
+                              FontWeight.w600,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+
+                    const Icon(
+                      Icons.chevron_right,
+                      color: Colors.grey,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            const SizedBox(height: 12),
+
+            // =============================================
+            // SELECTED IMAGE
+            // =============================================
+
+            if (selectedImageBase64 != null)
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius:
+                        BorderRadius.circular(16),
+                    child: Image.memory(
+                      base64Decode(
+                        selectedImageBase64!,
+                      ),
+                      width: double.infinity,
+                      height: 220,
+                      fit: BoxFit.cover,
+                    ),
+                  ),
+
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: GestureDetector(
+                      onTap: removeImage,
+                      child: Container(
+                        width: 34,
+                        height: 34,
+                        decoration:
+                            const BoxDecoration(
+                          color: Colors.black54,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.close,
+                          color: Colors.white,
+                          size: 20,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
 
             const SizedBox(height: 20),
 
             // =============================================
             // MUSIC / PLAYLIST SELECTOR
             // =============================================
+
             Row(
               children: [
                 // MUSIC
@@ -419,10 +665,17 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       });
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: isMusic ? EchoColors.primary : Colors.white,
-                        borderRadius: BorderRadius.circular(12),
+                      padding:
+                          const EdgeInsets.symmetric(
+                        vertical: 12,
+                      ),
+                      decoration:
+                          BoxDecoration(
+                        color: isMusic
+                            ? EchoColors.primary
+                            : Colors.white,
+                        borderRadius:
+                            BorderRadius.circular(12),
                         border: Border.all(
                           color: isMusic
                               ? EchoColors.primary
@@ -433,8 +686,11 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         child: Text(
                           'Music',
                           style: TextStyle(
-                            color: isMusic ? Colors.white : Colors.black,
-                            fontWeight: FontWeight.w600,
+                            color: isMusic
+                                ? Colors.white
+                                : Colors.black,
+                            fontWeight:
+                                FontWeight.w600,
                           ),
                         ),
                       ),
@@ -449,17 +705,25 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                   child: GestureDetector(
                     onTap: () {
                       setState(() {
-                        selectedPostType = 'Playlist';
+                        selectedPostType =
+                            'Playlist';
 
                         selectedSong = null;
                         selectedArtist = null;
                       });
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      decoration: BoxDecoration(
-                        color: !isMusic ? EchoColors.primary : Colors.white,
-                        borderRadius: BorderRadius.circular(12),
+                      padding:
+                          const EdgeInsets.symmetric(
+                        vertical: 12,
+                      ),
+                      decoration:
+                          BoxDecoration(
+                        color: !isMusic
+                            ? EchoColors.primary
+                            : Colors.white,
+                        borderRadius:
+                            BorderRadius.circular(12),
                         border: Border.all(
                           color: !isMusic
                               ? EchoColors.primary
@@ -470,8 +734,11 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         child: Text(
                           'Playlist',
                           style: TextStyle(
-                            color: !isMusic ? Colors.white : Colors.black,
-                            fontWeight: FontWeight.w600,
+                            color: !isMusic
+                                ? Colors.white
+                                : Colors.black,
+                            fontWeight:
+                                FontWeight.w600,
                           ),
                         ),
                       ),
@@ -486,15 +753,23 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             // =============================================
             // ADD MUSIC / PLAYLIST
             // =============================================
+
             GestureDetector(
-              onTap: isMusic ? showMusicSelection : showPlaylistSelection,
+              onTap: isMusic
+                  ? showMusicSelection
+                  : showPlaylistSelection,
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.all(18),
+                padding:
+                    const EdgeInsets.all(18),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: EchoColors.secondary, width: 1.5),
+                  borderRadius:
+                      BorderRadius.circular(16),
+                  border: Border.all(
+                    color: EchoColors.secondary,
+                    width: 1.5,
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -503,11 +778,15 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                       height: 50,
                       decoration: BoxDecoration(
                         color: EchoColors.secondary,
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius:
+                            BorderRadius.circular(12),
                       ),
                       child: Icon(
-                        isMusic ? Icons.music_note : Icons.queue_music,
-                        color: EchoColors.primary,
+                        isMusic
+                            ? Icons.music_note
+                            : Icons.queue_music,
+                        color:
+                            EchoColors.primary,
                       ),
                     ),
 
@@ -516,41 +795,58 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     Expanded(
                       child: isMusic
                           ? Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment:
+                                  CrossAxisAlignment
+                                      .start,
                               children: [
                                 Text(
-                                  selectedSong ?? 'Add a song',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
+                                  selectedSong ??
+                                      'Add a song',
+                                  style:
+                                      const TextStyle(
+                                    fontWeight:
+                                        FontWeight.bold,
                                     fontSize: 15,
                                   ),
                                 ),
-                                const SizedBox(height: 4),
+                                const SizedBox(
+                                    height: 4),
                                 Text(
-                                  selectedArtist ?? 'Choose music to share',
-                                  style: const TextStyle(
-                                    color: Colors.grey,
+                                  selectedArtist ??
+                                      'Choose music to share',
+                                  style:
+                                      const TextStyle(
+                                    color:
+                                        Colors.grey,
                                     fontSize: 12,
                                   ),
                                 ),
                               ],
                             )
                           : Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment:
+                                  CrossAxisAlignment
+                                      .start,
                               children: [
                                 Text(
-                                  selectedPlaylist ?? 'Add a playlist',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
+                                  selectedPlaylist ??
+                                      'Add a playlist',
+                                  style:
+                                      const TextStyle(
+                                    fontWeight:
+                                        FontWeight.bold,
                                     fontSize: 15,
                                   ),
                                 ),
-                                const SizedBox(height: 4),
+                                const SizedBox(
+                                    height: 4),
                                 Text(
                                   selectedSongCount ??
                                       'Choose a playlist to share',
-                                  style: const TextStyle(
-                                    color: Colors.grey,
+                                  style:
+                                      const TextStyle(
+                                    color:
+                                        Colors.grey,
                                     fontSize: 12,
                                   ),
                                 ),
@@ -558,7 +854,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                             ),
                     ),
 
-                    const Icon(Icons.chevron_right, color: Colors.grey),
+                    const Icon(
+                      Icons.chevron_right,
+                      color: Colors.grey,
+                    ),
                   ],
                 ),
               ),
@@ -569,32 +868,41 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
             // =============================================
             // PREVIEW
             // =============================================
+
             const Text(
               'Preview',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
             ),
 
             const SizedBox(height: 12),
 
             Container(
               width: double.infinity,
-              padding: const EdgeInsets.all(16),
+              padding:
+                  const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius:
+                    BorderRadius.circular(16),
               ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
                 children: [
                   // Preview user
                   Row(
                     children: [
                       const CircleAvatar(
                         radius: 18,
-                        backgroundColor: EchoColors.secondary,
+                        backgroundColor:
+                            EchoColors.secondary,
                         child: Icon(
                           Icons.person,
-                          color: EchoColors.primary,
+                          color:
+                              EchoColors.primary,
                           size: 20,
                         ),
                       ),
@@ -603,7 +911,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
                       const Text(
                         'Yzabela',
-                        style: TextStyle(fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          fontWeight:
+                              FontWeight.bold,
+                        ),
                       ),
                     ],
                   ),
@@ -616,42 +927,78 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                         ? 'Your caption will appear here...'
                         : captionController.text,
                     style: TextStyle(
-                      color: captionController.text.isEmpty
+                      color: captionController
+                              .text
+                              .isEmpty
                           ? Colors.grey
                           : Colors.black,
                     ),
                   ),
 
+                  // Preview image
+                  if (selectedImageBase64 !=
+                      null) ...[
+                    const SizedBox(height: 12),
+
+                    ClipRRect(
+                      borderRadius:
+                          BorderRadius.circular(12),
+                      child: Image.memory(
+                        base64Decode(
+                          selectedImageBase64!,
+                        ),
+                        width: double.infinity,
+                        height: 180,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                  ],
+
                   const SizedBox(height: 12),
 
                   // Preview music
-                  if (isMusic && selectedSong != null)
+                  if (isMusic &&
+                      selectedSong != null)
                     Row(
                       children: [
-                        const Icon(Icons.music_note, color: EchoColors.primary),
+                        const Icon(
+                          Icons.music_note,
+                          color:
+                              EchoColors.primary,
+                        ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             '$selectedSong • $selectedArtist',
-                            style: const TextStyle(fontWeight: FontWeight.w600),
+                            style:
+                                const TextStyle(
+                              fontWeight:
+                                  FontWeight.w600,
+                            ),
                           ),
                         ),
                       ],
                     ),
 
                   // Preview playlist
-                  if (!isMusic && selectedPlaylist != null)
+                  if (!isMusic &&
+                      selectedPlaylist != null)
                     Row(
                       children: [
                         const Icon(
                           Icons.queue_music,
-                          color: EchoColors.primary,
+                          color:
+                              EchoColors.primary,
                         ),
                         const SizedBox(width: 8),
                         Expanded(
                           child: Text(
                             '$selectedPlaylist • $selectedSongCount',
-                            style: const TextStyle(fontWeight: FontWeight.w600),
+                            style:
+                                const TextStyle(
+                              fontWeight:
+                                  FontWeight.w600,
+                            ),
                           ),
                         ),
                       ],
