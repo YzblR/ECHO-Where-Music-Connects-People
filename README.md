@@ -45,7 +45,7 @@ git clone https://github.com/YzblR/ECHO-Where-Music-Connects-People.git
 
 2. Open the project folder:
 
-cd echo-music-app
+cd ECHO-Where-Music-Connects-People
 
 
 3. Install the project dependencies:
@@ -79,4 +79,3 @@ For more details, see [`AI-USAGE.md`](AI-USAGE.md).
 ## Developer
 
 **Yzabela Denise M. Reyes**
-
