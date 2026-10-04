@@ -40,7 +40,7 @@ flutter doctor
 
 1. Clone the repository:
 
-git clone https://github.com/YzblR/echo-music-app.git
+git clone https://github.com/YzblR/ECHO-Where-Music-Connects-People.git
 
 
 2. Open the project folder:
@@ -79,3 +79,4 @@ For more details, see [`AI-USAGE.md`](AI-USAGE.md).
 ## Developer
 
 **Yzabela Denise M. Reyes**
+
