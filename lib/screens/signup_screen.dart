@@ -2,42 +2,78 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../theme.dart';
-import 'signup_screen.dart';
 import 'home_screen.dart';
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class SignUpScreen extends StatefulWidget {
+  const SignUpScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<SignUpScreen> createState() => _SignUpScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _SignUpScreenState extends State<SignUpScreen> {
+  final TextEditingController usernameController =
+      TextEditingController();
+
   final TextEditingController emailController =
       TextEditingController();
 
   final TextEditingController passwordController =
       TextEditingController();
 
+  final TextEditingController confirmPasswordController =
+      TextEditingController();
+
   bool obscurePassword = true;
+  bool obscureConfirmPassword = true;
   bool isLoading = false;
 
   @override
   void dispose() {
+    usernameController.dispose();
     emailController.dispose();
     passwordController.dispose();
+    confirmPasswordController.dispose();
     super.dispose();
   }
 
-  Future<void> login() async {
+  Future<void> createAccount() async {
+    final username = usernameController.text.trim();
     final email = emailController.text.trim();
     final password = passwordController.text;
+    final confirmPassword =
+        confirmPasswordController.text;
 
-    if (email.isEmpty || password.isEmpty) {
+    if (username.isEmpty ||
+        email.isEmpty ||
+        password.isEmpty ||
+        confirmPassword.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Please enter your email and password.',
+            'Please complete all fields.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (password != confirmPassword) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Passwords do not match.',
+          ),
+        ),
+      );
+      return;
+    }
+
+    if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Password must be at least 6 characters.',
           ),
         ),
       );
@@ -49,21 +85,37 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      await Supabase.instance.client.auth
-          .signInWithPassword(
+      final response =
+          await Supabase.instance.client.auth.signUp(
         email: email,
         password: password,
+        data: {
+          'username': username,
+        },
       );
 
       if (!mounted) return;
 
-      Navigator.pushAndRemoveUntil(
-        context,
-        MaterialPageRoute(
-          builder: (context) => const HomeScreen(),
-        ),
-        (route) => false,
-      );
+      if (response.session != null) {
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const HomeScreen(),
+          ),
+          (route) => false,
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Account created! Please check your email to confirm your account.',
+            ),
+            duration: Duration(seconds: 5),
+          ),
+        );
+
+        Navigator.pop(context);
+      }
     } on AuthException catch (error) {
       if (!mounted) return;
 
@@ -130,18 +182,18 @@ class _LoginScreenState extends State<LoginScreen> {
                         size: 28,
                       ),
                     ),
-                    const SizedBox(height: 22),
+                    const SizedBox(height: 18),
                     const Text(
-                      'Welcome back!',
+                      'Create your account',
                       style: TextStyle(
-                        fontSize: 30,
+                        fontSize: 29,
                         fontWeight: FontWeight.w800,
                         color: Colors.white,
                       ),
                     ),
                     const SizedBox(height: 8),
                     const Text(
-                      'Log in to continue to ECHO.',
+                      'Join ECHO and connect through music.',
                       style: TextStyle(
                         fontSize: 15,
                         color: Colors.white70,
@@ -154,7 +206,7 @@ class _LoginScreenState extends State<LoginScreen> {
               Padding(
                 padding: const EdgeInsets.fromLTRB(
                   24,
-                  30,
+                  28,
                   24,
                   24,
                 ),
@@ -162,6 +214,46 @@ class _LoginScreenState extends State<LoginScreen> {
                   crossAxisAlignment:
                       CrossAxisAlignment.start,
                   children: [
+                    const Text(
+                      'Username',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: usernameController,
+                      decoration: InputDecoration(
+                        hintText: 'Choose a username',
+                        prefixIcon: const Icon(
+                          Icons.person_outline_rounded,
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius:
+                              BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius:
+                              BorderRadius.circular(16),
+                          borderSide: BorderSide(
+                            color: EchoColors.primary,
+                            width: 1.5,
+                          ),
+                        ),
+                        contentPadding:
+                            const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 17,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: 18),
+
                     const Text(
                       'Email',
                       style: TextStyle(
@@ -202,7 +294,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 18),
 
                     const Text(
                       'Password',
@@ -216,7 +308,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       controller: passwordController,
                       obscureText: obscurePassword,
                       decoration: InputDecoration(
-                        hintText: 'Enter your password',
+                        hintText: 'Create a password',
                         prefixIcon: const Icon(
                           Icons.lock_outline_rounded,
                         ),
@@ -256,39 +348,71 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 18),
 
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () {
-                          ScaffoldMessenger.of(context)
-                              .showSnackBar(
-                            const SnackBar(
-                              content: Text(
-                                'Password reset will be added later.',
-                              ),
-                            ),
-                          );
-                        },
-                        child: const Text(
-                          'Forgot Password?',
-                          style: TextStyle(
-                            color: EchoColors.primary,
-                            fontWeight: FontWeight.w600,
+                    const Text(
+                      'Confirm Password',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller:
+                          confirmPasswordController,
+                      obscureText:
+                          obscureConfirmPassword,
+                      decoration: InputDecoration(
+                        hintText: 'Confirm your password',
+                        prefixIcon: const Icon(
+                          Icons.lock_outline_rounded,
+                        ),
+                        suffixIcon: IconButton(
+                          onPressed: () {
+                            setState(() {
+                              obscureConfirmPassword =
+                                  !obscureConfirmPassword;
+                            });
+                          },
+                          icon: Icon(
+                            obscureConfirmPassword
+                                ? Icons.visibility_outlined
+                                : Icons.visibility_off_outlined,
                           ),
+                        ),
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius:
+                              BorderRadius.circular(16),
+                          borderSide: BorderSide.none,
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius:
+                              BorderRadius.circular(16),
+                          borderSide: BorderSide(
+                            color: EchoColors.primary,
+                            width: 1.5,
+                          ),
+                        ),
+                        contentPadding:
+                            const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 17,
                         ),
                       ),
                     ),
 
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 28),
 
                     SizedBox(
                       width: double.infinity,
                       height: 54,
                       child: ElevatedButton(
-                        onPressed:
-                            isLoading ? null : login,
+                        onPressed: isLoading
+                            ? null
+                            : createAccount,
                         style: ElevatedButton.styleFrom(
                           backgroundColor:
                               EchoColors.primary,
@@ -313,12 +437,12 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                               )
                             : const Text(
-                                'LOG IN',
+                                'CREATE ACCOUNT',
                                 style: TextStyle(
                                   fontSize: 15,
                                   fontWeight:
                                       FontWeight.bold,
-                                  letterSpacing: 1,
+                                  letterSpacing: 0.8,
                                 ),
                               ),
                       ),
@@ -327,43 +451,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     const SizedBox(height: 28),
 
                     Row(
-                      children: [
-                        Expanded(
-                          child: Divider(
-                            color: Colors.grey.shade300,
-                          ),
-                        ),
-                        const Padding(
-                          padding:
-                              EdgeInsets.symmetric(
-                            horizontal: 12,
-                          ),
-                          child: Text(
-                            'OR',
-                            style: TextStyle(
-                              fontSize: 12,
-                              color: Colors.black45,
-                              fontWeight:
-                                  FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                        Expanded(
-                          child: Divider(
-                            color: Colors.grey.shade300,
-                          ),
-                        ),
-                      ],
-                    ),
-
-                    const SizedBox(height: 24),
-
-                    Row(
                       mainAxisAlignment:
                           MainAxisAlignment.center,
                       children: [
                         const Text(
-                          "Don't have an account? ",
+                          'Already have an account? ',
                           style: TextStyle(
                             color: Colors.black54,
                             fontSize: 14,
@@ -371,16 +463,10 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                         GestureDetector(
                           onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    const SignUpScreen(),
-                              ),
-                            );
+                            Navigator.pop(context);
                           },
                           child: const Text(
-                            'Create Account',
+                            'Log In',
                             style: TextStyle(
                               color: EchoColors.primary,
                               fontSize: 14,
@@ -390,6 +476,21 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                       ],
+                    ),
+
+                    const SizedBox(height: 16),
+
+                    const Center(
+                      child: Text(
+                        'By creating an account, you can start\n'
+                        'discovering and sharing music on ECHO.',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: Colors.black38,
+                          height: 1.4,
+                        ),
+                      ),
                     ),
                   ],
                 ),

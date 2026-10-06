@@ -1,7 +1,5 @@
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../theme.dart';
 
@@ -13,42 +11,11 @@ class CreatePostScreen extends StatefulWidget {
 }
 
 class _CreatePostScreenState extends State<CreatePostScreen> {
-  final TextEditingController captionController =
-      TextEditingController();
-
-  final ImagePicker imagePicker = ImagePicker();
+  final captionController = TextEditingController();
 
   String selectedPostType = 'Music';
 
-  String? selectedSong;
-  String? selectedArtist;
-  String? selectedPlaylist;
-  String? selectedSongCount;
-
-  // Stores the selected image as Base64.
-  // This allows the image to be passed to the Home Feed.
-  String? selectedImageBase64;
-
-  final List<Map<String, String>> musicOptions = [
-    {'title': 'Snooze', 'artist': 'SZA'},
-    {'title': 'Glue Song', 'artist': 'beabadoobee'},
-    {'title': 'Super Shy', 'artist': 'NewJeans'},
-    {'title': 'I Like Me Better', 'artist': 'Lauv'},
-    {'title': 'Every Summertime', 'artist': 'NIKI'},
-    {'title': 'Totoong Tayo', 'artist': 'Jin DC'},
-    {'title': 'Malay Ko', 'artist': 'Daniel Padilla'},
-    {'title': 'Ikaw', 'artist': 'Yeng Constantino'},
-  ];
-
-  final List<Map<String, String>> playlistOptions = [
-    {'title': 'Late Night Thoughts', 'songs': '18 songs'},
-    {'title': 'Main Character', 'songs': '15 songs'},
-    {'title': 'Soft Hours', 'songs': '12 songs'},
-    {
-      'title': '1,2,3 kanya kanya na toh',
-      'songs': '30 songs',
-    },
-  ];
+  bool isPosting = false;
 
   @override
   void dispose() {
@@ -56,356 +23,69 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     super.dispose();
   }
 
-  // =====================================================
-  // PICK IMAGE
-  // =====================================================
-
-  Future<void> pickImage() async {
-    try {
-      final XFile? image = await imagePicker.pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 85,
-      );
-
-      if (image == null) {
-        return;
-      }
-
-      final bytes = await image.readAsBytes();
-
-      setState(() {
-        selectedImageBase64 = base64Encode(bytes);
-      });
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Could not select image: $e'),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
-    }
-  }
-
-  // =====================================================
-  // REMOVE IMAGE
-  // =====================================================
-
-  void removeImage() {
-    setState(() {
-      selectedImageBase64 = null;
-    });
-  }
-
-  // =====================================================
-  // CREATE POST
-  // =====================================================
-
-  void createPost() {
+  Future<void> createPost() async {
     final caption = captionController.text.trim();
 
     if (caption.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please add a caption.'),
-          behavior: SnackBarBehavior.floating,
-        ),
+        const SnackBar(content: Text('Please write something before posting.')),
       );
       return;
     }
 
-    // -----------------------------------------------------
-    // MUSIC POST
-    // -----------------------------------------------------
+    final user = Supabase.instance.client.auth.currentUser;
 
-    if (selectedPostType == 'Music') {
-      if (selectedSong == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please select a song.'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        return;
-      }
-
-      Navigator.pop(
-        context,
-        <String, String>{
-          'type': 'Music',
-          'caption': caption,
-          'songTitle': selectedSong!,
-          'artist': selectedArtist ?? '',
-          'imageBase64': selectedImageBase64 ?? '',
-        },
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please log in before creating a post.')),
       );
+      return;
     }
 
-    // -----------------------------------------------------
-    // PLAYLIST POST
-    // -----------------------------------------------------
+    setState(() {
+      isPosting = true;
+    });
 
-    else {
-      if (selectedPlaylist == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please select a playlist.'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-        return;
-      }
+    try {
+      await Supabase.instance.client.from('posts').insert({
+        'user_id': user.id,
+        'post_type': selectedPostType,
+        'caption': caption,
+      });
 
-      Navigator.pop(
-        context,
-        <String, String>{
-          'type': 'Playlist',
-          'caption': caption,
-          'playlistTitle': selectedPlaylist!,
-          'songCount': selectedSongCount ?? '',
-          'imageBase64': selectedImageBase64 ?? '',
-        },
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Post created successfully!')),
       );
+
+      Navigator.pop(context, true);
+    } on PostgrestException catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context)
+          .showSnackBar(SnackBar(content: Text(error.message)));
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Something went wrong. Please try again.'),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isPosting = false;
+        });
+      }
     }
   }
-
-  // =====================================================
-  // SELECT SONG
-  // =====================================================
-
-  void showMusicSelection() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(24),
-        ),
-      ),
-      builder: (context) {
-        return SafeArea(
-          child: SizedBox(
-            height:
-                MediaQuery.of(context).size.height * 0.75,
-            child: Column(
-              children: [
-                const SizedBox(height: 12),
-
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius:
-                        BorderRadius.circular(10),
-                  ),
-                ),
-
-                const SizedBox(height: 18),
-
-                const Text(
-                  'Choose a Song',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                Expanded(
-                  child: ListView.builder(
-                    padding:
-                        const EdgeInsets.symmetric(
-                      horizontal: 20,
-                    ),
-                    itemCount: musicOptions.length,
-                    itemBuilder: (context, index) {
-                      final music =
-                          musicOptions[index];
-
-                      return ListTile(
-                        contentPadding:
-                            const EdgeInsets.symmetric(
-                          vertical: 4,
-                        ),
-                        leading: CircleAvatar(
-                          backgroundColor:
-                              EchoColors.secondary,
-                          child: const Icon(
-                            Icons.music_note,
-                            color:
-                                EchoColors.primary,
-                          ),
-                        ),
-                        title: Text(
-                          music['title']!,
-                          style:
-                              const TextStyle(
-                            fontWeight:
-                                FontWeight.w600,
-                          ),
-                        ),
-                        subtitle:
-                            Text(music['artist']!),
-                        trailing:
-                            const Icon(
-                          Icons.chevron_right,
-                          color: Colors.grey,
-                        ),
-                        onTap: () {
-                          setState(() {
-                            selectedSong =
-                                music['title'];
-                            selectedArtist =
-                                music['artist'];
-
-                            selectedPlaylist =
-                                null;
-                            selectedSongCount =
-                                null;
-                          });
-
-                          Navigator.pop(context);
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  // =====================================================
-  // SELECT PLAYLIST
-  // =====================================================
-
-  void showPlaylistSelection() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(24),
-        ),
-      ),
-      builder: (context) {
-        return SafeArea(
-          child: SizedBox(
-            height:
-                MediaQuery.of(context).size.height * 0.65,
-            child: Column(
-              children: [
-                const SizedBox(height: 12),
-
-                Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade300,
-                    borderRadius:
-                        BorderRadius.circular(10),
-                  ),
-                ),
-
-                const SizedBox(height: 18),
-
-                const Text(
-                  'Choose a Playlist',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-
-                const SizedBox(height: 12),
-
-                Expanded(
-                  child: ListView.builder(
-                    padding:
-                        const EdgeInsets.symmetric(
-                      horizontal: 20,
-                    ),
-                    itemCount:
-                        playlistOptions.length,
-                    itemBuilder: (context, index) {
-                      final playlist =
-                          playlistOptions[index];
-
-                      return ListTile(
-                        contentPadding:
-                            const EdgeInsets.symmetric(
-                          vertical: 4,
-                        ),
-                        leading: CircleAvatar(
-                          backgroundColor:
-                              EchoColors.secondary,
-                          child: const Icon(
-                            Icons.queue_music,
-                            color:
-                                EchoColors.primary,
-                          ),
-                        ),
-                        title: Text(
-                          playlist['title']!,
-                          style:
-                              const TextStyle(
-                            fontWeight:
-                                FontWeight.w600,
-                          ),
-                        ),
-                        subtitle:
-                            Text(playlist['songs']!),
-                        trailing:
-                            const Icon(
-                          Icons.chevron_right,
-                          color: Colors.grey,
-                        ),
-                        onTap: () {
-                          setState(() {
-                            selectedPlaylist =
-                                playlist['title'];
-                            selectedSongCount =
-                                playlist['songs'];
-
-                            selectedSong = null;
-                            selectedArtist = null;
-                          });
-
-                          Navigator.pop(context);
-                        },
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  // =====================================================
-  // BUILD SCREEN
-  // =====================================================
 
   @override
   Widget build(BuildContext context) {
-    final bool isMusic =
-        selectedPostType == 'Music';
-
     return Scaffold(
-      backgroundColor: EchoColors.background,
-
-      // =================================================
-      // APP BAR
-      // =================================================
+      backgroundColor: Colors.white,
 
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -414,600 +94,399 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
 
         leading: IconButton(
           icon: const Icon(
-            Icons.arrow_back,
+            Icons.arrow_back_ios_new_rounded,
             color: Colors.black,
+            size: 20,
           ),
-          onPressed: () {
-            Navigator.pop(context);
-          },
+          onPressed: isPosting
+              ? null
+              : () {
+                  Navigator.pop(context);
+                },
         ),
 
         title: const Text(
           'Create Post',
           style: TextStyle(
             color: Colors.black,
-            fontSize: 18,
+            fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
         ),
 
         actions: [
           TextButton(
-            onPressed: createPost,
-            child: const Text(
-              'Post',
-              style: TextStyle(
-                color: EchoColors.primary,
-                fontWeight: FontWeight.bold,
-                fontSize: 15,
-              ),
-            ),
+            onPressed: isPosting ? null : createPost,
+            child: isPosting
+                ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: EchoColors.primary,
+                    ),
+                  )
+                : const Text(
+                    'Post',
+                    style: TextStyle(
+                      color: EchoColors.primary,
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
           ),
         ],
       ),
 
-      // =================================================
-      // BODY
-      // =================================================
-
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(18),
         child: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // =============================================
-            // USER INFORMATION
-            // =============================================
+            // ---------------------------------------------------------------
+            // USER
+            // ---------------------------------------------------------------
 
             Row(
               children: [
                 const CircleAvatar(
-                  radius: 24,
-                  backgroundColor:
-                      EchoColors.secondary,
-                  child: Icon(
-                    Icons.person,
-                    color: EchoColors.primary,
-                    size: 28,
+                  radius: 22,
+                  backgroundImage: NetworkImage(
+                    'https://i.pravatar.cc/150?img=47',
                   ),
                 ),
 
-                const SizedBox(width: 12),
+                const SizedBox(width: 10),
 
-                const Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
-                  children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
                     Text(
-                      'Yzabela',
+                      'Your Name',
                       style: TextStyle(
                         fontSize: 15,
-                        fontWeight:
-                            FontWeight.bold,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
+
+                    SizedBox(height: 2),
+
                     Text(
-                      '@yzabela',
-                      style: TextStyle(
-                        color: Colors.grey,
-                        fontSize: 12,
-                      ),
+                      '@yourusername',
+                      style: TextStyle(fontSize: 12, color: Colors.grey),
                     ),
                   ],
                 ),
               ],
             ),
 
-            const SizedBox(height: 24),
+            const SizedBox(height: 25),
 
-            // =============================================
-            // CAPTION
-            // =============================================
-
+            // ---------------------------------------------------------------
+            // POST TYPE
+            // ---------------------------------------------------------------
             const Text(
-              'What are you listening to?',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              'What do you want to share?',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
 
             const SizedBox(height: 12),
+
+            Row(
+              children: [
+                _PostTypeButton(
+                  icon: Icons.music_note_rounded,
+                  label: 'Music',
+                  selected: selectedPostType == 'Music',
+                  onTap: () {
+                    setState(() {
+                      selectedPostType = 'Music';
+                    });
+                  },
+                ),
+
+                const SizedBox(width: 10),
+
+                _PostTypeButton(
+                  icon: Icons.playlist_play_rounded,
+                  label: 'Playlist',
+                  selected: selectedPostType == 'Playlist',
+                  onTap: () {
+                    setState(() {
+                      selectedPostType = 'Playlist';
+                    });
+                  },
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 25),
+
+            // ---------------------------------------------------------------
+            // CAPTION
+            // ---------------------------------------------------------------
+            const Text(
+              'Caption',
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+            ),
+
+            const SizedBox(height: 10),
 
             TextField(
               controller: captionController,
               maxLines: 5,
-              onChanged: (_) {
-                setState(() {});
-              },
+              maxLength: 300,
               decoration: InputDecoration(
-                hintText:
-                    'Share your thoughts about this song...',
+                hintText: 'Share something about your music...',
+                hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
                 filled: true,
-                fillColor: Colors.white,
+                fillColor: const Color(0xFFF8F8F8),
                 border: OutlineInputBorder(
-                  borderRadius:
-                      BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding:
-                    const EdgeInsets.all(16),
+                contentPadding: const EdgeInsets.all(15),
               ),
             ),
 
-            const SizedBox(height: 16),
+            const SizedBox(height: 15),
 
-            // =============================================
-            // ADD PHOTO
-            // =============================================
-
-            GestureDetector(
-              onTap: pickImage,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(
-                  vertical: 14,
-                  horizontal: 16,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius:
-                      BorderRadius.circular(14),
-                  border: Border.all(
-                    color: EchoColors.secondary,
-                    width: 1.2,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: EchoColors.secondary,
-                        borderRadius:
-                            BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.add_photo_alternate_outlined,
-                        color: EchoColors.primary,
-                      ),
-                    ),
-
-                    const SizedBox(width: 12),
-
-                    Expanded(
-                      child: Text(
-                        selectedImageBase64 == null
-                            ? 'Add Photo'
-                            : 'Change Photo',
-                        style: const TextStyle(
-                          fontWeight:
-                              FontWeight.w600,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ),
-
-                    const Icon(
-                      Icons.chevron_right,
-                      color: Colors.grey,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 12),
-
-            // =============================================
-            // SELECTED IMAGE
-            // =============================================
-
-            if (selectedImageBase64 != null)
-              Stack(
-                children: [
-                  ClipRRect(
-                    borderRadius:
-                        BorderRadius.circular(16),
-                    child: Image.memory(
-                      base64Decode(
-                        selectedImageBase64!,
-                      ),
-                      width: double.infinity,
-                      height: 220,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-
-                  Positioned(
-                    top: 10,
-                    right: 10,
-                    child: GestureDetector(
-                      onTap: removeImage,
-                      child: Container(
-                        width: 34,
-                        height: 34,
-                        decoration:
-                            const BoxDecoration(
-                          color: Colors.black54,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.close,
-                          color: Colors.white,
-                          size: 20,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-
-            const SizedBox(height: 20),
-
-            // =============================================
-            // MUSIC / PLAYLIST SELECTOR
-            // =============================================
-
-            Row(
-              children: [
-                // MUSIC
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        selectedPostType = 'Music';
-
-                        selectedPlaylist = null;
-                        selectedSongCount = null;
-                      });
-                    },
-                    child: Container(
-                      padding:
-                          const EdgeInsets.symmetric(
-                        vertical: 12,
-                      ),
-                      decoration:
-                          BoxDecoration(
-                        color: isMusic
-                            ? EchoColors.primary
-                            : Colors.white,
-                        borderRadius:
-                            BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isMusic
-                              ? EchoColors.primary
-                              : Colors.grey.shade300,
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          'Music',
-                          style: TextStyle(
-                            color: isMusic
-                                ? Colors.white
-                                : Colors.black,
-                            fontWeight:
-                                FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(width: 12),
-
-                // PLAYLIST
-                Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        selectedPostType =
-                            'Playlist';
-
-                        selectedSong = null;
-                        selectedArtist = null;
-                      });
-                    },
-                    child: Container(
-                      padding:
-                          const EdgeInsets.symmetric(
-                        vertical: 12,
-                      ),
-                      decoration:
-                          BoxDecoration(
-                        color: !isMusic
-                            ? EchoColors.primary
-                            : Colors.white,
-                        borderRadius:
-                            BorderRadius.circular(12),
-                        border: Border.all(
-                          color: !isMusic
-                              ? EchoColors.primary
-                              : Colors.grey.shade300,
-                        ),
-                      ),
-                      child: Center(
-                        child: Text(
-                          'Playlist',
-                          style: TextStyle(
-                            color: !isMusic
-                                ? Colors.white
-                                : Colors.black,
-                            fontWeight:
-                                FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-
-            const SizedBox(height: 20),
-
-            // =============================================
+            // ---------------------------------------------------------------
             // ADD MUSIC / PLAYLIST
-            // =============================================
+            // ---------------------------------------------------------------
+            if (selectedPostType == 'Music') _AddMusicCard(),
 
-            GestureDetector(
-              onTap: isMusic
-                  ? showMusicSelection
-                  : showPlaylistSelection,
-              child: Container(
-                width: double.infinity,
-                padding:
-                    const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius:
-                      BorderRadius.circular(16),
-                  border: Border.all(
-                    color: EchoColors.secondary,
-                    width: 1.5,
-                  ),
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 50,
-                      height: 50,
-                      decoration: BoxDecoration(
-                        color: EchoColors.secondary,
-                        borderRadius:
-                            BorderRadius.circular(12),
-                      ),
-                      child: Icon(
-                        isMusic
-                            ? Icons.music_note
-                            : Icons.queue_music,
-                        color:
-                            EchoColors.primary,
-                      ),
-                    ),
+            if (selectedPostType == 'Playlist') _AddPlaylistCard(),
 
-                    const SizedBox(width: 14),
+            const SizedBox(height: 25),
 
-                    Expanded(
-                      child: isMusic
-                          ? Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment
-                                      .start,
-                              children: [
-                                Text(
-                                  selectedSong ??
-                                      'Add a song',
-                                  style:
-                                      const TextStyle(
-                                    fontWeight:
-                                        FontWeight.bold,
-                                    fontSize: 15,
-                                  ),
-                                ),
-                                const SizedBox(
-                                    height: 4),
-                                Text(
-                                  selectedArtist ??
-                                      'Choose music to share',
-                                  style:
-                                      const TextStyle(
-                                    color:
-                                        Colors.grey,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            )
-                          : Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment
-                                      .start,
-                              children: [
-                                Text(
-                                  selectedPlaylist ??
-                                      'Add a playlist',
-                                  style:
-                                      const TextStyle(
-                                    fontWeight:
-                                        FontWeight.bold,
-                                    fontSize: 15,
-                                  ),
-                                ),
-                                const SizedBox(
-                                    height: 4),
-                                Text(
-                                  selectedSongCount ??
-                                      'Choose a playlist to share',
-                                  style:
-                                      const TextStyle(
-                                    color:
-                                        Colors.grey,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                    ),
-
-                    const Icon(
-                      Icons.chevron_right,
-                      color: Colors.grey,
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 28),
-
-            // =============================================
-            // PREVIEW
-            // =============================================
-
+            // ---------------------------------------------------------------
+            // POST PREVIEW
+            // ---------------------------------------------------------------
             const Text(
               'Preview',
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
             ),
 
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
 
             Container(
               width: double.infinity,
-              padding:
-                  const EdgeInsets.all(16),
+              padding: const EdgeInsets.all(15),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius:
-                    BorderRadius.circular(16),
+                color: const Color(0xFFFBFBFB),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE5E5E5)),
               ),
-              child: Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+              child: Row(
                 children: [
-                  // Preview user
-                  Row(
-                    children: [
-                      const CircleAvatar(
-                        radius: 18,
-                        backgroundColor:
-                            EchoColors.secondary,
-                        child: Icon(
-                          Icons.person,
-                          color:
-                              EchoColors.primary,
-                          size: 20,
-                        ),
-                      ),
-
-                      const SizedBox(width: 10),
-
-                      const Text(
-                        'Yzabela',
-                        style: TextStyle(
-                          fontWeight:
-                              FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 12),
-
-                  // Preview caption
-                  Text(
-                    captionController.text.isEmpty
-                        ? 'Your caption will appear here...'
-                        : captionController.text,
-                    style: TextStyle(
-                      color: captionController
-                              .text
-                              .isEmpty
-                          ? Colors.grey
-                          : Colors.black,
+                  Container(
+                    width: 65,
+                    height: 65,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF4AFC8),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(
+                      selectedPostType == 'Music'
+                          ? Icons.music_note_rounded
+                          : Icons.playlist_play_rounded,
+                      color: Colors.white,
+                      size: 30,
                     ),
                   ),
 
-                  // Preview image
-                  if (selectedImageBase64 !=
-                      null) ...[
-                    const SizedBox(height: 12),
+                  const SizedBox(width: 12),
 
-                    ClipRRect(
-                      borderRadius:
-                          BorderRadius.circular(12),
-                      child: Image.memory(
-                        base64Decode(
-                          selectedImageBase64!,
-                        ),
-                        width: double.infinity,
-                        height: 180,
-                        fit: BoxFit.cover,
-                      ),
-                    ),
-                  ],
-
-                  const SizedBox(height: 12),
-
-                  // Preview music
-                  if (isMusic &&
-                      selectedSong != null)
-                    Row(
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Icon(
-                          Icons.music_note,
-                          color:
-                              EchoColors.primary,
+                        Text(
+                          selectedPostType == 'Music'
+                              ? 'Music Post'
+                              : 'Playlist Post',
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            '$selectedSong • $selectedArtist',
-                            style:
-                                const TextStyle(
-                              fontWeight:
-                                  FontWeight.w600,
-                            ),
+
+                        const SizedBox(height: 4),
+
+                        Text(
+                          captionController.text.isEmpty
+                              ? 'Your caption will appear here'
+                              : captionController.text,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey,
                           ),
                         ),
                       ],
                     ),
-
-                  // Preview playlist
-                  if (!isMusic &&
-                      selectedPlaylist != null)
-                    Row(
-                      children: [
-                        const Icon(
-                          Icons.queue_music,
-                          color:
-                              EchoColors.primary,
-                        ),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            '$selectedPlaylist • $selectedSongCount',
-                            style:
-                                const TextStyle(
-                              fontWeight:
-                                  FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                  ),
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
-            const SizedBox(height: 30),
+// ===========================================================================
+// POST TYPE BUTTON
+// ===========================================================================
+
+class _PostTypeButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _PostTypeButton({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: BoxDecoration(
+          color: selected ? EchoColors.primary : const Color(0xFFF5F5F5),
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              icon,
+              size: 18,
+              color: selected ? Colors.white : Colors.black87,
+            ),
+
+            const SizedBox(width: 6),
+
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: selected ? Colors.white : Colors.black87,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ===========================================================================
+// ADD MUSIC
+// ===========================================================================
+
+class _AddMusicCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        // Spotify search can be connected here later.
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF7FA),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: EchoColors.secondary),
+        ),
+        child: const Row(
+          children: [
+            Icon(
+              Icons.add_circle_outline_rounded,
+              color: EchoColors.primary,
+              size: 28,
+            ),
+
+            SizedBox(width: 12),
+
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Add Music',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                ),
+
+                SizedBox(height: 3),
+
+                Text(
+                  'Search for a song or artist',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ===========================================================================
+// ADD PLAYLIST
+// ===========================================================================
+
+class _AddPlaylistCard extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        // Playlist selection can be connected later.
+      },
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(15),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF7FA),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: EchoColors.secondary),
+        ),
+        child: const Row(
+          children: [
+            Icon(
+              Icons.add_circle_outline_rounded,
+              color: EchoColors.primary,
+              size: 28,
+            ),
+
+            SizedBox(width: 12),
+
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Add Playlist',
+                  style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                ),
+
+                SizedBox(height: 3),
+
+                Text(
+                  'Choose a playlist to share',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
           ],
         ),
       ),
