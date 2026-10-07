@@ -74,8 +74,11 @@ class _HomeScreenState extends State<HomeScreen> {
         isLoadingPosts = false;
       });
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Unable to load posts.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Unable to load posts.'),
+        ),
+      );
     }
   }
 
@@ -86,7 +89,9 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> openCreatePost() async {
     final result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const CreatePostScreen()),
+      MaterialPageRoute(
+        builder: (context) => const CreatePostScreen(),
+      ),
     );
 
     if (result == true) {
@@ -101,14 +106,18 @@ class _HomeScreenState extends State<HomeScreen> {
   void goToSearch() {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const SearchScreen()),
+      MaterialPageRoute(
+        builder: (context) => const SearchScreen(),
+      ),
     );
   }
 
   void goToProfile() {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const ProfileScreen()),
+      MaterialPageRoute(
+        builder: (context) => const ProfileScreen(),
+      ),
     );
   }
 
@@ -132,7 +141,12 @@ class _HomeScreenState extends State<HomeScreen> {
                       // ======================================================
 
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(18, 12, 18, 8),
+                        padding: const EdgeInsets.fromLTRB(
+                          18,
+                          12,
+                          18,
+                          8,
+                        ),
                         child: Row(
                           children: [
                             const Text(
@@ -160,7 +174,8 @@ class _HomeScreenState extends State<HomeScreen> {
                               onTap: goToProfile,
                               child: CircleAvatar(
                                 radius: 17,
-                                backgroundColor: EchoColors.secondary,
+                                backgroundColor:
+                                    EchoColors.secondary,
                                 child: const Icon(
                                   Icons.person_rounded,
                                   color: Colors.white,
@@ -175,11 +190,14 @@ class _HomeScreenState extends State<HomeScreen> {
                       // ======================================================
                       // STORIES
                       // ======================================================
+
                       SizedBox(
                         height: 91,
                         child: ListView(
                           scrollDirection: Axis.horizontal,
-                          padding: const EdgeInsets.symmetric(horizontal: 18),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 18,
+                          ),
                           children: [
                             StoryItem(
                               name: 'Your Story',
@@ -193,25 +211,29 @@ class _HomeScreenState extends State<HomeScreen> {
                             const StoryItem(
                               name: 'Garrett',
                               username: 'Garrett',
-                              image: 'https://i.pravatar.cc/150?img=12',
+                              image:
+                                  'https://i.pravatar.cc/150?img=12',
                             ),
 
                             const StoryItem(
                               name: 'Dean',
                               username: 'Dean',
-                              image: 'https://i.pravatar.cc/150?img=11',
+                              image:
+                                  'https://i.pravatar.cc/150?img=11',
                             ),
 
                             const StoryItem(
                               name: 'Justin',
                               username: 'Justin',
-                              image: 'https://i.pravatar.cc/150?img=13',
+                              image:
+                                  'https://i.pravatar.cc/150?img=13',
                             ),
 
                             const StoryItem(
                               name: 'Logan',
                               username: 'Logan',
-                              image: 'https://i.pravatar.cc/150?img=14',
+                              image:
+                                  'https://i.pravatar.cc/150?img=14',
                             ),
                           ],
                         ),
@@ -220,6 +242,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       // ======================================================
                       // FOR YOU / FOLLOWING
                       // ======================================================
+
                       Row(
                         children: [
                           Expanded(
@@ -252,15 +275,17 @@ class _HomeScreenState extends State<HomeScreen> {
                         ],
                       ),
 
-                      const Divider(height: 1, color: Color(0xFFE5E5E5)),
+                      const Divider(
+                        height: 1,
+                        color: Color(0xFFE5E5E5),
+                      ),
 
                       // ======================================================
                       // FEED
                       // ======================================================
+
                       if (selectedFeed == 0) ...[
-                        // ----------------------------------------------------
                         // USER'S SUPABASE POSTS
-                        // ----------------------------------------------------
 
                         if (isLoadingPosts)
                           const Padding(
@@ -285,18 +310,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
                         ...posts.map((post) {
                           final postType =
-                              post['post_type']?.toString() ?? 'Music';
+                              post['post_type']?.toString() ??
+                                  'Music';
 
-                          final caption = post['caption']?.toString() ?? '';
+                          final caption =
+                              post['caption']?.toString() ?? '';
 
-                          final createdAt = post['created_at']?.toString();
+                          final createdAt =
+                              post['created_at']?.toString();
 
                           return postType == 'Playlist'
                               ? PlaylistPost(
                                   username: username,
                                   time: formatTime(createdAt),
                                   profileImage: '',
-                                  albumImage: 'https://picsum.photos/seed/echoPlaylist/300/300',
+                                  albumImage:
+                                      'https://picsum.photos/seed/echoPlaylist/300/300',
                                   playlistTitle: 'My Playlist',
                                   subtitle: caption,
                                   songs: 'Playlist',
@@ -307,7 +336,8 @@ class _HomeScreenState extends State<HomeScreen> {
                                   username: username,
                                   time: formatTime(createdAt),
                                   profileImage: '',
-                                  albumImage: 'https://picsum.photos/seed/echoMusic/300/300',
+                                  albumImage:
+                                      'https://picsum.photos/seed/echoMusic/300/300',
                                   song: 'Music Post',
                                   artist: 'ECHO',
                                   tag: 'Music',
@@ -317,33 +347,36 @@ class _HomeScreenState extends State<HomeScreen> {
                                 );
                         }),
 
-                        // ----------------------------------------------------
                         // HANNAH POST
-                        // ----------------------------------------------------
+
                         const MusicPost(
                           username: 'Hannah',
                           time: '2h ago',
-                          profileImage: 'https://i.pravatar.cc/150?img=45',
+                          profileImage:
+                              'https://i.pravatar.cc/150?img=45',
                           albumImage:
                               'https://picsum.photos/seed/babynow/300/300',
                           song: 'Baby Now That I Found You',
                           artist: 'Ella Bright',
                           tag: 'Review',
-                          caption: 'this song feels like finding the right person at the right time. <3',
+                          caption:
+                              'this song feels like finding the right person at the right time. <3',
                           likes: '10K',
                           comments: '2K',
                         ),
 
-                        // ----------------------------------------------------
                         // ZAZA POST
-                        // ----------------------------------------------------
+
                         const PlaylistPost(
                           username: 'Zaza',
                           time: '1h ago',
-                          profileImage: 'https://i.pravatar.cc/150?img=32',
-                          albumImage: 'https://picsum.photos/seed/fallingforyou/300/300',
+                          profileImage:
+                              'https://i.pravatar.cc/150?img=32',
+                          albumImage:
+                              'https://picsum.photos/seed/fallingforyou/300/300',
                           playlistTitle: 'Falling For You',
-                          subtitle: 'Every song reminds me of you',
+                          subtitle:
+                              'Every song reminds me of you',
                           songs: '143 songs',
                           likes: '20K',
                           comments: '5K',
@@ -354,7 +387,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Text(
                             'Posts from people you follow will appear here.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(fontSize: 14, color: Colors.grey),
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.grey,
+                            ),
                           ),
                         ),
                       ],
@@ -366,15 +402,22 @@ class _HomeScreenState extends State<HomeScreen> {
 
             // ============================================================
             // BOTTOM NAVIGATION
+            // HOME → SEARCH → + → MESSAGES → PROFILE
             // ============================================================
+
             Container(
               height: 66,
               decoration: const BoxDecoration(
                 color: Colors.white,
-                border: Border(top: BorderSide(color: Color(0xFFE5E5E5))),
+                border: Border(
+                  top: BorderSide(
+                    color: Color(0xFFE5E5E5),
+                  ),
+                ),
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                mainAxisAlignment:
+                    MainAxisAlignment.spaceAround,
                 children: [
                   // HOME
 
@@ -385,6 +428,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
 
                   // SEARCH
+
                   BottomNavIcon(
                     icon: Icons.search_rounded,
                     selected: false,
@@ -392,6 +436,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
 
                   // CREATE POST
+
                   GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: openCreatePost,
@@ -412,6 +457,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
 
                   // MESSAGES
+
                   BottomNavIcon(
                     icon: Icons.chat_bubble_outline_rounded,
                     selected: false,
@@ -419,13 +465,15 @@ class _HomeScreenState extends State<HomeScreen> {
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => const MessageScreen(),
+                          builder: (context) =>
+                              const MessageScreen(),
                         ),
                       );
                     },
                   ),
 
                   // PROFILE
+
                   BottomNavIcon(
                     icon: Icons.person_outline_rounded,
                     selected: false,
@@ -556,7 +604,10 @@ class StoryItem extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 11, color: Colors.black87),
+              style: const TextStyle(
+                fontSize: 11,
+                color: Colors.black87,
+              ),
             ),
           ],
         ),
@@ -573,7 +624,11 @@ class FeedTab extends StatelessWidget {
   final String title;
   final bool selected;
 
-  const FeedTab({super.key, required this.title, required this.selected});
+  const FeedTab({
+    super.key,
+    required this.title,
+    required this.selected,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -583,7 +638,9 @@ class FeedTab extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: selected ? EchoColors.primary : Colors.transparent,
+            color: selected
+                ? EchoColors.primary
+                : Colors.transparent,
             width: 2,
           ),
         ),
@@ -592,8 +649,10 @@ class FeedTab extends StatelessWidget {
         title,
         style: TextStyle(
           fontSize: 20,
-          fontWeight: selected ? FontWeight.bold : FontWeight.normal,
-          color: selected ? EchoColors.primary : Colors.black87,
+          fontWeight:
+              selected ? FontWeight.bold : FontWeight.normal,
+          color:
+              selected ? EchoColors.primary : Colors.black87,
         ),
       ),
     );
@@ -657,7 +716,8 @@ class MusicPost extends StatelessWidget {
               const SizedBox(width: 9),
 
               Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
                 children: [
                   Text(
                     username,
@@ -669,24 +729,32 @@ class MusicPost extends StatelessWidget {
 
                   Text(
                     time,
-                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey,
+                    ),
                   ),
                 ],
               ),
 
               const Spacer(),
 
-              const Icon(Icons.more_horiz, size: 22),
+              const Icon(
+                Icons.more_horiz,
+                size: 22,
+              ),
             ],
           ),
 
           const SizedBox(height: 11),
 
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
             children: [
               ClipRRect(
-                borderRadius: BorderRadius.circular(3),
+                borderRadius:
+                    BorderRadius.circular(3),
                 child: Image.network(
                   albumImage,
                   width: 95,
@@ -701,15 +769,18 @@ class MusicPost extends StatelessWidget {
                 child: SizedBox(
                   height: 95,
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
                     children: [
                       Text(
                         song,
                         maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
+                        overflow:
+                            TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 15,
-                          fontWeight: FontWeight.bold,
+                          fontWeight:
+                              FontWeight.bold,
                         ),
                       ),
 
@@ -726,19 +797,29 @@ class MusicPost extends StatelessWidget {
                       const SizedBox(height: 6),
 
                       Container(
-                        padding: const EdgeInsets.symmetric(
+                        padding:
+                            const EdgeInsets.symmetric(
                           horizontal: 9,
                           vertical: 3,
                         ),
-                        decoration: BoxDecoration(
-                          border: Border.all(color: EchoColors.primary),
-                          borderRadius: BorderRadius.circular(10),
+                        decoration:
+                            BoxDecoration(
+                          border: Border.all(
+                            color:
+                                EchoColors.primary,
+                          ),
+                          borderRadius:
+                              BorderRadius.circular(
+                            10,
+                          ),
                         ),
                         child: Text(
                           tag,
-                          style: const TextStyle(
+                          style:
+                              const TextStyle(
                             fontSize: 11,
-                            color: EchoColors.primary,
+                            color:
+                                EchoColors.primary,
                           ),
                         ),
                       ),
@@ -748,9 +829,11 @@ class MusicPost extends StatelessWidget {
                       const Row(
                         children: [
                           Icon(
-                            Icons.play_circle_outline,
+                            Icons
+                                .play_circle_outline,
                             size: 20,
-                            color: EchoColors.primary,
+                            color:
+                                EchoColors.primary,
                           ),
 
                           SizedBox(width: 5),
@@ -759,7 +842,8 @@ class MusicPost extends StatelessWidget {
                             'Listen',
                             style: TextStyle(
                               fontSize: 11,
-                              color: EchoColors.primary,
+                              color:
+                                  EchoColors.primary,
                             ),
                           ),
                         ],
@@ -775,36 +859,59 @@ class MusicPost extends StatelessWidget {
 
           Text(
             caption,
-            style: const TextStyle(fontSize: 13, color: Colors.black87),
+            style: const TextStyle(
+              fontSize: 13,
+              color: Colors.black87,
+            ),
           ),
 
           const SizedBox(height: 8),
 
           Row(
             children: [
-              const Icon(Icons.favorite_border_rounded, size: 18),
+              const Icon(
+                Icons.favorite_border_rounded,
+                size: 18,
+              ),
 
               const SizedBox(width: 4),
 
-              Text(likes, style: const TextStyle(fontSize: 10)),
+              Text(
+                likes,
+                style:
+                    const TextStyle(fontSize: 10),
+              ),
 
               const SizedBox(width: 16),
 
-              const Icon(Icons.chat_bubble_outline_rounded, size: 17),
+              const Icon(
+                Icons.chat_bubble_outline_rounded,
+                size: 17,
+              ),
 
               const SizedBox(width: 4),
 
-              Text(comments, style: const TextStyle(fontSize: 10)),
+              Text(
+                comments,
+                style:
+                    const TextStyle(fontSize: 10),
+              ),
 
               const SizedBox(width: 16),
 
-              const Icon(Icons.repeat, size: 17),
+              const Icon(
+                Icons.repeat,
+                size: 17,
+              ),
             ],
           ),
 
           const SizedBox(height: 13),
 
-          const Divider(height: 1, color: Color(0xFFE5E5E5)),
+          const Divider(
+            height: 1,
+            color: Color(0xFFE5E5E5),
+          ),
         ],
       ),
     );
@@ -844,16 +951,19 @@ class PlaylistPost extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               CircleAvatar(
                 radius: 18,
-                backgroundColor: EchoColors.secondary,
-                backgroundImage: profileImage.isNotEmpty
-                    ? NetworkImage(profileImage)
-                    : null,
+                backgroundColor:
+                    EchoColors.secondary,
+                backgroundImage:
+                    profileImage.isNotEmpty
+                        ? NetworkImage(profileImage)
+                        : null,
                 child: profileImage.isEmpty
                     ? const Icon(
                         Icons.person_rounded,
@@ -866,7 +976,8 @@ class PlaylistPost extends StatelessWidget {
               const SizedBox(width: 9),
 
               Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
                 children: [
                   Text(
                     '$username shared a playlist',
@@ -878,24 +989,32 @@ class PlaylistPost extends StatelessWidget {
 
                   Text(
                     time,
-                    style: const TextStyle(fontSize: 11, color: Colors.grey),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey,
+                    ),
                   ),
                 ],
               ),
 
               const Spacer(),
 
-              const Icon(Icons.more_horiz, size: 22),
+              const Icon(
+                Icons.more_horiz,
+                size: 22,
+              ),
             ],
           ),
 
           const SizedBox(height: 11),
 
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment:
+                CrossAxisAlignment.start,
             children: [
               ClipRRect(
-                borderRadius: BorderRadius.circular(3),
+                borderRadius:
+                    BorderRadius.circular(3),
                 child: Image.network(
                   albumImage,
                   width: 95,
@@ -908,13 +1027,15 @@ class PlaylistPost extends StatelessWidget {
 
               Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
                   children: [
                     Text(
                       playlistTitle,
                       style: const TextStyle(
                         fontSize: 15,
-                        fontWeight: FontWeight.bold,
+                        fontWeight:
+                            FontWeight.bold,
                       ),
                     ),
 
@@ -932,7 +1053,10 @@ class PlaylistPost extends StatelessWidget {
 
                     Text(
                       songs,
-                      style: const TextStyle(fontSize: 12, color: Colors.grey),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey,
+                      ),
                     ),
                   ],
                 ),
@@ -944,23 +1068,40 @@ class PlaylistPost extends StatelessWidget {
 
           Row(
             children: [
-              const Icon(Icons.favorite_border_rounded, size: 18),
+              const Icon(
+                Icons.favorite_border_rounded,
+                size: 18,
+              ),
 
               const SizedBox(width: 4),
 
-              Text(likes, style: const TextStyle(fontSize: 10)),
+              Text(
+                likes,
+                style:
+                    const TextStyle(fontSize: 10),
+              ),
 
               const SizedBox(width: 16),
 
-              const Icon(Icons.chat_bubble_outline_rounded, size: 17),
+              const Icon(
+                Icons.chat_bubble_outline_rounded,
+                size: 17,
+              ),
 
               const SizedBox(width: 4),
 
-              Text(comments, style: const TextStyle(fontSize: 10)),
+              Text(
+                comments,
+                style:
+                    const TextStyle(fontSize: 10),
+              ),
 
               const SizedBox(width: 16),
 
-              const Icon(Icons.repeat, size: 17),
+              const Icon(
+                Icons.repeat,
+                size: 17,
+              ),
             ],
           ),
 
@@ -994,7 +1135,9 @@ class BottomNavIcon extends StatelessWidget {
       icon: Icon(
         icon,
         size: 25,
-        color: selected ? EchoColors.primary : Colors.grey,
+        color: selected
+            ? EchoColors.primary
+            : Colors.grey,
       ),
     );
   }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../theme.dart';
 import 'home_screen.dart';
@@ -16,61 +17,103 @@ class MessageScreen extends StatefulWidget {
 class _MessageScreenState extends State<MessageScreen> {
   final TextEditingController searchController = TextEditingController();
 
-  final List<Map<String, dynamic>> conversations = [
-    {
-      'name': 'Sevi Camero',
-      'username': '@cameroRoar',
-      'message': 'That song is so good!',
-      'time': '10:42 AM',
-      'image': 'https://i.pravatar.cc/150?img=47',
-      'unread': true,
-    },
-    {
-      'name': 'Duke Laurence',
-      'username': '@dukeLangsakalam',
-      'message': 'You should listen to this playlist.',
-      'time': '9:15 AM',
-      'image': 'https://i.pravatar.cc/150?img=12',
-      'unread': true,
-    },
-    {
-      'name': 'Akihiro Leonell',
-      'username': '@youCaptain',
-      'message': 'I love that artist too!',
-      'time': 'Yesterday',
-      'image': 'https://i.pravatar.cc/150?img=32',
-      'unread': false,
-    },
-    {
-      'name': 'Emma Paige',
-      'username': '@cutesyEmmz',
-      'message': 'See you later!',
-      'time': 'Yesterday',
-      'image': 'https://i.pravatar.cc/150?img=11',
-      'unread': false,
-    },
-    {
-      'name': 'Serene Lovely',
-      'username': '@loveSerene',
-      'message': 'Have you heard their new album?',
-      'time': 'Monday',
-      'image': 'https://i.pravatar.cc/150?img=44',
-      'unread': false,
-    },
-    {
-      'name': 'Soledad Bellandie',
-      'username': '@sol',
-      'message': 'Are you going to Bruno Mars concert?',
-      'time': 'Tuesday',
-      'image': 'https://i.pravatar.cc/150?img=44',
-      'unread': true,
-    },
-  ];
+  final supabase = Supabase.instance.client;
+
+  List<Map<String, dynamic>> users = [];
+  Map<String, Map<String, dynamic>> latestMessages = {};
+
+  bool isLoading = true;
+
+  User? get currentUser => supabase.auth.currentUser;
+
+  @override
+  void initState() {
+    super.initState();
+    loadUsersAndMessages();
+  }
 
   @override
   void dispose() {
     searchController.dispose();
     super.dispose();
+  }
+
+  // ================================================================
+  // LOAD USERS AND MESSAGES
+  // ================================================================
+
+  Future<void> loadUsersAndMessages() async {
+    if (currentUser == null) {
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      // Get all registered users except the current user.
+      final profileData = await supabase
+          .from('profiles')
+          .select('id, username, email')
+          .neq('id', currentUser!.id)
+          .order('username');
+
+      final profileList =
+          List<Map<String, dynamic>>.from(profileData);
+
+      // Get all messages involving the current user.
+      final messageData = await supabase
+          .from('messages')
+          .select('id, sender_id, receiver_id, message, created_at')
+          .or(
+            'sender_id.eq.${currentUser!.id},'
+            'receiver_id.eq.${currentUser!.id}',
+          )
+          .order('created_at', ascending: false);
+
+      final messageList =
+          List<Map<String, dynamic>>.from(messageData);
+
+      final Map<String, Map<String, dynamic>> latest = {};
+
+      // Find the latest message for each conversation.
+      for (final message in messageList) {
+        final senderId = message['sender_id']?.toString();
+        final receiverId = message['receiver_id']?.toString();
+
+        if (senderId == null || receiverId == null) {
+          continue;
+        }
+
+        final otherUserId =
+            senderId == currentUser!.id ? receiverId : senderId;
+
+        if (!latest.containsKey(otherUserId)) {
+          latest[otherUserId] = message;
+        }
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        users = profileList;
+        latestMessages = latest;
+        isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        isLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to load messages: $e'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   // ================================================================
@@ -80,29 +123,80 @@ class _MessageScreenState extends State<MessageScreen> {
   void goToHome() {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const HomeScreen()),
+      MaterialPageRoute(
+        builder: (context) => const HomeScreen(),
+      ),
     );
   }
 
   void goToSearch() {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const SearchScreen()),
+      MaterialPageRoute(
+        builder: (context) => const SearchScreen(),
+      ),
     );
   }
 
   void goToCreatePost() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const CreatePostScreen()),
+      MaterialPageRoute(
+        builder: (context) => const CreatePostScreen(),
+      ),
     );
   }
 
   void goToProfile() {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const ProfileScreen()),
+      MaterialPageRoute(
+        builder: (context) => const ProfileScreen(),
+      ),
     );
+  }
+
+  // ================================================================
+  // FORMAT MESSAGE TIME
+  // ================================================================
+
+  String formatMessageTime(String? value) {
+    if (value == null || value.isEmpty) {
+      return '';
+    }
+
+    final date = DateTime.tryParse(value);
+
+    if (date == null) {
+      return '';
+    }
+
+    final localDate = date.toLocal();
+    final now = DateTime.now();
+
+    final difference = now.difference(localDate);
+
+    if (difference.inMinutes < 1) {
+      return 'now';
+    }
+
+    if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}m';
+    }
+
+    if (difference.inHours < 24) {
+      return '${difference.inHours}h';
+    }
+
+    if (difference.inDays == 1) {
+      return 'Yesterday';
+    }
+
+    if (difference.inDays < 7) {
+      return '${difference.inDays}d';
+    }
+
+    return '${localDate.month}/${localDate.day}';
   }
 
   // ================================================================
@@ -111,13 +205,18 @@ class _MessageScreenState extends State<MessageScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final searchText = searchController.text.toLowerCase();
+    final searchText =
+        searchController.text.trim().toLowerCase();
 
-    final filteredConversations = conversations.where((conversation) {
-      final name = conversation['name'].toString().toLowerCase();
-      final username = conversation['username'].toString().toLowerCase();
+    final filteredUsers = users.where((user) {
+      final username =
+          user['username']?.toString().toLowerCase() ?? '';
 
-      return name.contains(searchText) || username.contains(searchText);
+      final email =
+          user['email']?.toString().toLowerCase() ?? '';
+
+      return username.contains(searchText) ||
+          email.contains(searchText);
     }).toList();
 
     return Scaffold(
@@ -130,7 +229,12 @@ class _MessageScreenState extends State<MessageScreen> {
             // ==========================================================
 
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 18, 20, 12),
+              padding: const EdgeInsets.fromLTRB(
+                20,
+                18,
+                20,
+                12,
+              ),
               child: Row(
                 children: [
                   const Expanded(
@@ -148,7 +252,7 @@ class _MessageScreenState extends State<MessageScreen> {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
                           content: Text(
-                            'New message feature is coming soon.',
+                            'Select a user below to start a conversation.',
                           ),
                           behavior: SnackBarBehavior.floating,
                         ),
@@ -168,7 +272,8 @@ class _MessageScreenState extends State<MessageScreen> {
             // ==========================================================
 
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 20),
               child: TextField(
                 controller: searchController,
                 onChanged: (_) {
@@ -186,7 +291,8 @@ class _MessageScreenState extends State<MessageScreen> {
                   ),
                   filled: true,
                   fillColor: Colors.white,
-                  contentPadding: const EdgeInsets.symmetric(
+                  contentPadding:
+                      const EdgeInsets.symmetric(
                     vertical: 12,
                   ),
                   border: OutlineInputBorder(
@@ -214,98 +320,136 @@ class _MessageScreenState extends State<MessageScreen> {
             const SizedBox(height: 15),
 
             // ==========================================================
-            // CONVERSATIONS
+            // USERS / CONVERSATIONS
             // ==========================================================
 
             Expanded(
-              child: filteredConversations.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 70,
-                            height: 70,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFFE8F0),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: const Icon(
-                              Icons.search_off_rounded,
-                              size: 34,
-                              color: EchoColors.primary,
-                            ),
-                          ),
-
-                          const SizedBox(height: 15),
-
-                          const Text(
-                            'No messages found',
-                            style: TextStyle(
-                              fontSize: 17,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-
-                          const SizedBox(height: 5),
-
-                          Text(
-                            'Try searching for another person.',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                        ],
+              child: isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(
+                        color: EchoColors.primary,
                       ),
                     )
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(
-                        20,
-                        5,
-                        20,
-                        20,
-                      ),
-                      itemCount: filteredConversations.length,
-                      separatorBuilder: (context, index) {
-                        return const SizedBox(height: 5);
-                      },
-                      itemBuilder: (context, index) {
-                        final conversation =
-                            filteredConversations[index];
-
-                        return ConversationTile(
-                          name: conversation['name'],
-                          username: conversation['username'],
-                          message: conversation['message'],
-                          time: conversation['time'],
-                          unread: conversation['unread'],
-                          onTap: () async {
-                            final result =
-                                await Navigator.push<String>(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => ChatScreen(
-                                  name: conversation['name'],
-                                  username: conversation['username'],
-                                  initialMessage:
-                                      conversation['message'],
+                  : filteredUsers.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                width: 70,
+                                height: 70,
+                                decoration: BoxDecoration(
+                                  color:
+                                      const Color(0xFFFFE8F0),
+                                  borderRadius:
+                                      BorderRadius.circular(20),
+                                ),
+                                child: const Icon(
+                                  Icons.search_off_rounded,
+                                  size: 34,
+                                  color: EchoColors.primary,
                                 ),
                               ),
+
+                              const SizedBox(height: 15),
+
+                              Text(
+                                searchText.isEmpty
+                                    ? 'No users found'
+                                    : 'No users found',
+                                style: const TextStyle(
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+
+                              const SizedBox(height: 5),
+
+                              Text(
+                                searchText.isEmpty
+                                    ? 'There are no other registered users yet.'
+                                    : 'Try searching for another person.',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  color: Colors.grey.shade600,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.separated(
+                          padding:
+                              const EdgeInsets.fromLTRB(
+                            20,
+                            5,
+                            20,
+                            20,
+                          ),
+                          itemCount: filteredUsers.length,
+                          separatorBuilder:
+                              (context, index) {
+                            return const SizedBox(height: 5);
+                          },
+                          itemBuilder: (context, index) {
+                            final user =
+                                filteredUsers[index];
+
+                            final userId =
+                                user['id'].toString();
+
+                            final username =
+                                user['username']
+                                        ?.toString() ??
+                                    'User';
+
+                            final email =
+                                user['email']
+                                        ?.toString() ??
+                                    '';
+
+                            final latest =
+                                latestMessages[userId];
+
+                            final message =
+                                latest?['message']
+                                        ?.toString() ??
+                                    'Start a conversation';
+
+                            final time =
+                                formatMessageTime(
+                              latest?['created_at']
+                                  ?.toString(),
                             );
 
-                            if (result != null &&
-                                result.trim().isNotEmpty) {
-                              setState(() {
-                                conversation['message'] = result;
-                                conversation['time'] = 'now';
-                                conversation['unread'] = false;
-                              });
-                            }
+                            final unread = false;
+
+                            return ConversationTile(
+                              name: username,
+                              username: email,
+                              message: message,
+                              time: time,
+                              unread: unread,
+                              onTap: () async {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        ChatScreen(
+                                      name: username,
+                                      username: email,
+                                      receiverId: userId,
+                                    ),
+                                  ),
+                                );
+
+                                // Refresh when returning
+                                // from the chat.
+                                loadUsersAndMessages();
+                              },
+                            );
                           },
-                        );
-                      },
-                    ),
+                        ),
             ),
 
             // ==========================================================
@@ -323,7 +467,8 @@ class _MessageScreenState extends State<MessageScreen> {
                 ),
               ),
               child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                mainAxisAlignment:
+                    MainAxisAlignment.spaceAround,
                 children: [
                   // HOME
                   BottomNavIcon(
@@ -430,7 +575,8 @@ class ConversationTile extends StatelessWidget {
             // MESSAGE INFO
             Expanded(
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment:
+                    CrossAxisAlignment.start,
                 children: [
                   Row(
                     children: [
@@ -438,7 +584,8 @@ class ConversationTile extends StatelessWidget {
                         child: Text(
                           name,
                           maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                          overflow:
+                              TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 15,
                             fontWeight: unread
@@ -448,15 +595,16 @@ class ConversationTile extends StatelessWidget {
                         ),
                       ),
 
-                      Text(
-                        time,
-                        style: TextStyle(
-                          fontSize: 11,
-                          color: unread
-                              ? EchoColors.primary
-                              : Colors.grey.shade500,
+                      if (time.isNotEmpty)
+                        Text(
+                          time,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: unread
+                                ? EchoColors.primary
+                                : Colors.grey.shade500,
+                          ),
                         ),
-                      ),
                     ],
                   ),
 
@@ -468,7 +616,8 @@ class ConversationTile extends StatelessWidget {
                         child: Text(
                           message,
                           maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                          overflow:
+                              TextOverflow.ellipsis,
                           style: TextStyle(
                             fontSize: 13,
                             color: unread
@@ -487,7 +636,8 @@ class ConversationTile extends StatelessWidget {
                         Container(
                           width: 8,
                           height: 8,
-                          decoration: const BoxDecoration(
+                          decoration:
+                              const BoxDecoration(
                             color: EchoColors.primary,
                             shape: BoxShape.circle,
                           ),
@@ -512,38 +662,37 @@ class ConversationTile extends StatelessWidget {
 class ChatScreen extends StatefulWidget {
   final String name;
   final String username;
-  final String initialMessage;
+  final String receiverId;
 
   const ChatScreen({
     super.key,
     required this.name,
     required this.username,
-    required this.initialMessage,
+    required this.receiverId,
   });
 
   @override
-  State<ChatScreen> createState() => _ChatScreenState();
+  State<ChatScreen> createState() =>
+      _ChatScreenState();
 }
 
 class _ChatScreenState extends State<ChatScreen> {
   final TextEditingController messageController =
       TextEditingController();
 
-  final List<Map<String, dynamic>> messages = [];
+  final supabase = Supabase.instance.client;
+
+  List<Map<String, dynamic>> messages = [];
+
+  bool isLoading = true;
+  bool isSending = false;
+
+  User? get currentUser => supabase.auth.currentUser;
 
   @override
   void initState() {
     super.initState();
-
-    messages.add({
-      'text': widget.initialMessage,
-      'isMe': false,
-    });
-
-    messages.add({
-      'text': 'I know right! I have been listening to it all day.',
-      'isMe': false,
-    });
+    loadMessages();
   }
 
   @override
@@ -553,24 +702,125 @@ class _ChatScreenState extends State<ChatScreen> {
   }
 
   // ================================================================
+  // LOAD MESSAGES
+  // ================================================================
+
+  Future<void> loadMessages() async {
+    if (currentUser == null) {
+      setState(() {
+        isLoading = false;
+      });
+      return;
+    }
+
+    try {
+      // Get messages involving the current user.
+      final data = await supabase
+          .from('messages')
+          .select(
+            'id, sender_id, receiver_id, message, created_at',
+          )
+          .or(
+            'sender_id.eq.${currentUser!.id},'
+            'receiver_id.eq.${currentUser!.id}',
+          )
+          .order('created_at');
+
+      final allMessages =
+          List<Map<String, dynamic>>.from(data);
+
+      // Keep only messages between this user and
+      // the selected person.
+      final conversation = allMessages.where((message) {
+        final senderId =
+            message['sender_id']?.toString();
+
+        final receiverId =
+            message['receiver_id']?.toString();
+
+        return (senderId == currentUser!.id &&
+                receiverId == widget.receiverId) ||
+            (senderId == widget.receiverId &&
+                receiverId == currentUser!.id);
+      }).toList();
+
+      if (!mounted) return;
+
+      setState(() {
+        messages = conversation;
+        isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        isLoading = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to load messages: $e'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
+  // ================================================================
   // SEND MESSAGE
   // ================================================================
 
-  void sendMessage() {
-    final text = messageController.text.trim();
+  Future<void> sendMessage() async {
+    final text =
+        messageController.text.trim();
 
-    if (text.isEmpty) {
+    if (text.isEmpty || isSending) {
+      return;
+    }
+
+    if (currentUser == null) {
       return;
     }
 
     setState(() {
-      messages.add({
-        'text': text,
-        'isMe': true,
-      });
+      isSending = true;
     });
 
-    messageController.clear();
+    try {
+      final result = await supabase
+          .from('messages')
+          .insert({
+            'sender_id': currentUser!.id,
+            'receiver_id': widget.receiverId,
+            'message': text,
+          })
+          .select()
+          .single();
+
+      messageController.clear();
+
+      if (!mounted) return;
+
+      setState(() {
+        messages.add(
+          Map<String, dynamic>.from(result),
+        );
+        isSending = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+
+      setState(() {
+        isSending = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Unable to send message: $e'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
   }
 
   // ================================================================
@@ -593,16 +843,7 @@ class _ChatScreenState extends State<ChatScreen> {
             size: 19,
           ),
           onPressed: () {
-            final lastMyMessage = messages
-                .where((message) => message['isMe'] == true)
-                .toList();
-
-            Navigator.pop(
-              context,
-              lastMyMessage.isNotEmpty
-                  ? lastMyMessage.last['text']
-                  : null,
-            );
+            Navigator.pop(context);
           },
         ),
 
@@ -623,7 +864,8 @@ class _ChatScreenState extends State<ChatScreen> {
             const SizedBox(width: 10),
 
             Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment:
+                  CrossAxisAlignment.start,
               children: [
                 Text(
                   widget.name,
@@ -649,12 +891,13 @@ class _ChatScreenState extends State<ChatScreen> {
         actions: [
           IconButton(
             onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
+              ScaffoldMessenger.of(context)
+                  .showSnackBar(
                 const SnackBar(
-                  content: Text(
-                    'More options coming soon.',
-                  ),
-                  behavior: SnackBarBehavior.floating,
+                  content:
+                      Text('More options coming soon.'),
+                  behavior:
+                      SnackBarBehavior.floating,
                 ),
               );
             },
@@ -673,23 +916,93 @@ class _ChatScreenState extends State<ChatScreen> {
           // ==========================================================
 
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(
-                18,
-                20,
-                18,
-                15,
-              ),
-              itemCount: messages.length,
-              itemBuilder: (context, index) {
-                final message = messages[index];
+            child: isLoading
+                ? const Center(
+                    child: CircularProgressIndicator(
+                      color: EchoColors.primary,
+                    ),
+                  )
+                : messages.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisSize:
+                              MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 70,
+                              height: 70,
+                              decoration:
+                                  BoxDecoration(
+                                color:
+                                    const Color(
+                                  0xFFFFE8F0,
+                                ),
+                                borderRadius:
+                                    BorderRadius
+                                        .circular(20),
+                              ),
+                              child: const Icon(
+                                Icons.chat_bubble_outline_rounded,
+                                size: 34,
+                                color:
+                                    EchoColors.primary,
+                              ),
+                            ),
 
-                return ChatBubble(
-                  text: message['text'],
-                  isMe: message['isMe'],
-                );
-              },
-            ),
+                            const SizedBox(height: 15),
+
+                            const Text(
+                              'Start the conversation',
+                              style: TextStyle(
+                                fontSize: 17,
+                                fontWeight:
+                                    FontWeight.bold,
+                              ),
+                            ),
+
+                            const SizedBox(height: 5),
+
+                            Text(
+                              'Send a message to ${widget.name}.',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color:
+                                    Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        padding:
+                            const EdgeInsets.fromLTRB(
+                          18,
+                          20,
+                          18,
+                          15,
+                        ),
+                        itemCount: messages.length,
+                        itemBuilder:
+                            (context, index) {
+                          final message =
+                              messages[index];
+
+                          final senderId =
+                              message['sender_id']
+                                  ?.toString();
+
+                          final isMe =
+                              senderId ==
+                                  currentUser?.id;
+
+                          return ChatBubble(
+                            text: message['message']
+                                    ?.toString() ??
+                                '',
+                            isMe: isMe,
+                          );
+                        },
+                      ),
           ),
 
           // ==========================================================
@@ -697,7 +1010,8 @@ class _ChatScreenState extends State<ChatScreen> {
           // ==========================================================
 
           Container(
-            padding: const EdgeInsets.fromLTRB(
+            padding:
+                const EdgeInsets.fromLTRB(
               15,
               10,
               15,
@@ -717,28 +1031,39 @@ class _ChatScreenState extends State<ChatScreen> {
                 children: [
                   Expanded(
                     child: TextField(
-                      controller: messageController,
-                      textInputAction: TextInputAction.send,
+                      controller:
+                          messageController,
+                      textInputAction:
+                          TextInputAction.send,
                       onSubmitted: (_) {
                         sendMessage();
                       },
-                      decoration: InputDecoration(
-                        hintText: 'Write a message...',
+                      decoration:
+                          InputDecoration(
+                        hintText:
+                            'Write a message...',
                         hintStyle: TextStyle(
-                          color: Colors.grey.shade500,
+                          color:
+                              Colors.grey.shade500,
                           fontSize: 13,
                         ),
                         filled: true,
-                        fillColor: const Color(0xFFF6F6F6),
+                        fillColor:
+                            const Color(0xFFF6F6F6),
                         contentPadding:
-                            const EdgeInsets.symmetric(
+                            const EdgeInsets
+                                .symmetric(
                           horizontal: 16,
                           vertical: 11,
                         ),
-                        border: OutlineInputBorder(
+                        border:
+                            OutlineInputBorder(
                           borderRadius:
-                              BorderRadius.circular(22),
-                          borderSide: BorderSide.none,
+                              BorderRadius.circular(
+                            22,
+                          ),
+                          borderSide:
+                              BorderSide.none,
                         ),
                       ),
                     ),
@@ -747,19 +1072,32 @@ class _ChatScreenState extends State<ChatScreen> {
                   const SizedBox(width: 8),
 
                   GestureDetector(
-                    onTap: sendMessage,
+                    onTap: isSending
+                        ? null
+                        : sendMessage,
                     child: Container(
                       width: 44,
                       height: 44,
-                      decoration: const BoxDecoration(
+                      decoration:
+                          const BoxDecoration(
                         color: EchoColors.primary,
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(
-                        Icons.send_rounded,
-                        color: Colors.white,
-                        size: 20,
-                      ),
+                      child: isSending
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child:
+                                  CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(
+                              Icons.send_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
                     ),
                   ),
                 ],
@@ -790,45 +1128,59 @@ class ChatBubble extends StatelessWidget {
   Widget build(BuildContext context) {
     return Align(
       alignment:
-          isMe ? Alignment.centerRight : Alignment.centerLeft,
+          isMe
+              ? Alignment.centerRight
+              : Alignment.centerLeft,
       child: Container(
         constraints: BoxConstraints(
           maxWidth:
-              MediaQuery.of(context).size.width * 0.72,
+              MediaQuery.of(context).size.width *
+                  0.72,
         ),
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.symmetric(
+        margin:
+            const EdgeInsets.only(bottom: 10),
+        padding:
+            const EdgeInsets.symmetric(
           horizontal: 15,
           vertical: 11,
         ),
         decoration: BoxDecoration(
-          color: isMe
-              ? EchoColors.primary
-              : Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: const Radius.circular(17),
-            topRight: const Radius.circular(17),
-            bottomLeft: Radius.circular(
+          color:
+              isMe
+                  ? EchoColors.primary
+                  : Colors.white,
+          borderRadius:
+              BorderRadius.only(
+            topLeft:
+                const Radius.circular(17),
+            topRight:
+                const Radius.circular(17),
+            bottomLeft:
+                Radius.circular(
               isMe ? 17 : 4,
             ),
-            bottomRight: Radius.circular(
+            bottomRight:
+                Radius.circular(
               isMe ? 4 : 17,
             ),
           ),
-          border: isMe
-              ? null
-              : Border.all(
-                  color: Colors.grey.shade200,
-                ),
+          border:
+              isMe
+                  ? null
+                  : Border.all(
+                      color:
+                          Colors.grey.shade200,
+                    ),
         ),
         child: Text(
           text,
           style: TextStyle(
             fontSize: 13,
             height: 1.35,
-            color: isMe
-                ? Colors.white
-                : Colors.black87,
+            color:
+                isMe
+                    ? Colors.white
+                    : Colors.black87,
           ),
         ),
       ),
@@ -859,9 +1211,10 @@ class BottomNavIcon extends StatelessWidget {
       icon: Icon(
         icon,
         size: 25,
-        color: selected
-            ? EchoColors.primary
-            : Colors.grey,
+        color:
+            selected
+                ? EchoColors.primary
+                : Colors.grey,
       ),
     );
   }
