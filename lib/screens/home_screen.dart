@@ -415,7 +415,14 @@ class _HomeScreenState extends State<HomeScreen> {
                   BottomNavIcon(
                     icon: Icons.chat_bubble_outline_rounded,
                     selected: false,
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const MessageScreen(),
+                        ),
+                      );
+                    },
                   ),
 
                   // PROFILE
