@@ -1,7 +1,9 @@
+
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../theme.dart';
+import '../widgets/post_interactions.dart';
 import 'search_screen.dart';
 import 'create_post_screen.dart';
 import 'profile_screen.dart';
@@ -20,18 +22,10 @@ class _HomeScreenState extends State<HomeScreen> {
   List<Map<String, dynamic>> posts = [];
   bool isLoadingPosts = true;
 
-  // ============================================================
-  // CURRENT USER
-  // ============================================================
-
-  User? get currentUser {
-    return Supabase.instance.client.auth.currentUser;
-  }
+  User? get currentUser => Supabase.instance.client.auth.currentUser;
 
   String get username {
-    final metadata = currentUser?.userMetadata;
-
-    final value = metadata?['username']?.toString();
+    final value = currentUser?.userMetadata?['username']?.toString();
 
     if (value != null && value.trim().isNotEmpty) {
       return value;
@@ -40,9 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
     return currentUser?.email?.split('@').first ?? 'User';
   }
 
-  String get email {
-    return currentUser?.email ?? '';
-  }
+  String get email => currentUser?.email ?? '';
 
   @override
   void initState() {
@@ -75,9 +67,7 @@ class _HomeScreenState extends State<HomeScreen> {
       });
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Unable to load posts.'),
-        ),
+        const SnackBar(content: Text('Unable to load posts.')),
       );
     }
   }
@@ -125,7 +115,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-
       body: SafeArea(
         child: Column(
           children: [
@@ -136,17 +125,12 @@ class _HomeScreenState extends State<HomeScreen> {
                   physics: const AlwaysScrollableScrollPhysics(),
                   child: Column(
                     children: [
-                      // ======================================================
+                      // ==================================================
                       // HEADER
-                      // ======================================================
+                      // ==================================================
 
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(
-                          18,
-                          12,
-                          18,
-                          8,
-                        ),
+                        padding: const EdgeInsets.fromLTRB(18, 12, 18, 8),
                         child: Row(
                           children: [
                             const Text(
@@ -157,9 +141,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
-
                             const Spacer(),
-
                             IconButton(
                               onPressed: () {},
                               icon: const Icon(
@@ -167,15 +149,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                 size: 25,
                               ),
                             ),
-
                             const SizedBox(width: 3),
-
                             GestureDetector(
                               onTap: goToProfile,
                               child: CircleAvatar(
                                 radius: 17,
-                                backgroundColor:
-                                    EchoColors.secondary,
+                                backgroundColor: EchoColors.secondary,
                                 child: const Icon(
                                   Icons.person_rounded,
                                   color: Colors.white,
@@ -187,9 +166,9 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
 
-                      // ======================================================
+                      // ==================================================
                       // STORIES
-                      // ======================================================
+                      // ==================================================
 
                       SizedBox(
                         height: 91,
@@ -207,41 +186,33 @@ class _HomeScreenState extends State<HomeScreen> {
                               isCurrentUser: true,
                               onTap: goToProfile,
                             ),
-
                             const StoryItem(
                               name: 'Garrett',
                               username: 'Garrett',
-                              image:
-                                  'https://i.pravatar.cc/150?img=12',
+                              image: 'https://i.pravatar.cc/150?img=12',
                             ),
-
                             const StoryItem(
                               name: 'Dean',
                               username: 'Dean',
-                              image:
-                                  'https://i.pravatar.cc/150?img=11',
+                              image: 'https://i.pravatar.cc/150?img=11',
                             ),
-
                             const StoryItem(
                               name: 'Justin',
                               username: 'Justin',
-                              image:
-                                  'https://i.pravatar.cc/150?img=13',
+                              image: 'https://i.pravatar.cc/150?img=13',
                             ),
-
                             const StoryItem(
                               name: 'Logan',
                               username: 'Logan',
-                              image:
-                                  'https://i.pravatar.cc/150?img=14',
+                              image: 'https://i.pravatar.cc/150?img=14',
                             ),
                           ],
                         ),
                       ),
 
-                      // ======================================================
+                      // ==================================================
                       // FOR YOU / FOLLOWING
-                      // ======================================================
+                      // ==================================================
 
                       Row(
                         children: [
@@ -258,7 +229,6 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
                           ),
-
                           Expanded(
                             child: GestureDetector(
                               onTap: () {
@@ -280,13 +250,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: Color(0xFFE5E5E5),
                       ),
 
-                      // ======================================================
+                      // ==================================================
                       // FEED
-                      // ======================================================
+                      // ==================================================
 
                       if (selectedFeed == 0) ...[
-                        // USER'S SUPABASE POSTS
-
                         if (isLoadingPosts)
                           const Padding(
                             padding: EdgeInsets.all(30),
@@ -310,8 +278,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                         ...posts.map((post) {
                           final postType =
-                              post['post_type']?.toString() ??
-                                  'Music';
+                              post['post_type']?.toString() ?? 'Music';
 
                           final caption =
                               post['caption']?.toString() ?? '';
@@ -319,37 +286,49 @@ class _HomeScreenState extends State<HomeScreen> {
                           final createdAt =
                               post['created_at']?.toString();
 
-                          return postType == 'Playlist'
-                              ? PlaylistPost(
-                                  username: username,
-                                  time: formatTime(createdAt),
-                                  profileImage: '',
-                                  albumImage:
-                                      'https://picsum.photos/seed/echoPlaylist/300/300',
-                                  playlistTitle: 'My Playlist',
-                                  subtitle: caption,
-                                  songs: 'Playlist',
-                                  likes: '0',
-                                  comments: '0',
-                                )
-                              : MusicPost(
-                                  username: username,
-                                  time: formatTime(createdAt),
-                                  profileImage: '',
-                                  albumImage:
-                                      'https://picsum.photos/seed/echoMusic/300/300',
-                                  song: 'Music Post',
-                                  artist: 'ECHO',
-                                  tag: 'Music',
-                                  caption: caption,
-                                  likes: '0',
-                                  comments: '0',
-                                );
+                          final postId = post['id'].toString();
+
+                          if (postType == 'Playlist') {
+                            return PlaylistPost(
+                              postId: postId,
+                              username: username,
+                              time: formatTime(createdAt),
+                              profileImage: '',
+                              albumImage:
+                                  'https://picsum.photos/seed/echoPlaylist/300/300',
+                              playlistTitle:
+                                  post['playlist_title']?.toString() ??
+                                      'My Playlist',
+                              subtitle: caption,
+                              songs:
+                                  post['song_count']?.toString() ??
+                                      'Playlist',
+                              likes: '0',
+                              comments: '0',
+                            );
+                          }
+
+                          return MusicPost(
+                            postId: postId,
+                            username: username,
+                            time: formatTime(createdAt),
+                            profileImage: '',
+                            albumImage:
+                                'https://picsum.photos/seed/echoMusic/300/300',
+                            song: post['song_title']?.toString() ??
+                                'Music Post',
+                            artist: post['artist']?.toString() ?? 'ECHO',
+                            tag: 'Music',
+                            caption: caption,
+                            likes: '0',
+                            comments: '0',
+                          );
                         }),
 
-                        // HANNAH POST
+                        // HANNAH SAMPLE POST
 
                         const MusicPost(
+                          postId: 'sample-hannah',
                           username: 'Hannah',
                           time: '2h ago',
                           profileImage:
@@ -365,9 +344,10 @@ class _HomeScreenState extends State<HomeScreen> {
                           comments: '2K',
                         ),
 
-                        // ZAZA POST
+                        // ZAZA SAMPLE POST
 
                         const PlaylistPost(
+                          postId: 'sample-zaza',
                           username: 'Zaza',
                           time: '1h ago',
                           profileImage:
@@ -375,25 +355,20 @@ class _HomeScreenState extends State<HomeScreen> {
                           albumImage:
                               'https://picsum.photos/seed/fallingforyou/300/300',
                           playlistTitle: 'Falling For You',
-                          subtitle:
-                              'Every song reminds me of you',
+                          subtitle: 'Every song reminds me of you',
                           songs: '143 songs',
                           likes: '20K',
                           comments: '5K',
                         ),
-                      ] else ...[
+                      ] else
                         const Padding(
                           padding: EdgeInsets.all(40),
                           child: Text(
                             'Posts from people you follow will appear here.',
                             textAlign: TextAlign.center,
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
-                            ),
+                            style: TextStyle(fontSize: 14, color: Colors.grey),
                           ),
                         ),
-                      ],
                     ],
                   ),
                 ),
@@ -410,33 +385,22 @@ class _HomeScreenState extends State<HomeScreen> {
               decoration: const BoxDecoration(
                 color: Colors.white,
                 border: Border(
-                  top: BorderSide(
-                    color: Color(0xFFE5E5E5),
-                  ),
+                  top: BorderSide(color: Color(0xFFE5E5E5)),
                 ),
               ),
               child: Row(
-                mainAxisAlignment:
-                    MainAxisAlignment.spaceAround,
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
-                  // HOME
-
                   BottomNavIcon(
                     icon: Icons.home_rounded,
                     selected: true,
                     onTap: () {},
                   ),
-
-                  // SEARCH
-
                   BottomNavIcon(
                     icon: Icons.search_rounded,
                     selected: false,
                     onTap: goToSearch,
                   ),
-
-                  // CREATE POST
-
                   GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: openCreatePost,
@@ -455,9 +419,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
                   ),
-
-                  // MESSAGES
-
                   BottomNavIcon(
                     icon: Icons.chat_bubble_outline_rounded,
                     selected: false,
@@ -465,15 +426,11 @@ class _HomeScreenState extends State<HomeScreen> {
                       Navigator.pushReplacement(
                         context,
                         MaterialPageRoute(
-                          builder: (context) =>
-                              const MessageScreen(),
+                          builder: (context) => const MessageScreen(),
                         ),
                       );
                     },
                   ),
-
-                  // PROFILE
-
                   BottomNavIcon(
                     icon: Icons.person_outline_rounded,
                     selected: false,
@@ -494,21 +451,15 @@ class _HomeScreenState extends State<HomeScreen> {
 // ============================================================
 
 String formatTime(String? dateString) {
-  if (dateString == null) {
-    return 'Just now';
-  }
+  if (dateString == null) return 'Just now';
 
   final date = DateTime.tryParse(dateString);
 
-  if (date == null) {
-    return 'Just now';
-  }
+  if (date == null) return 'Just now';
 
   final difference = DateTime.now().difference(date);
 
-  if (difference.inMinutes < 1) {
-    return 'Just now';
-  }
+  if (difference.inMinutes < 1) return 'Just now';
 
   if (difference.inMinutes < 60) {
     return '${difference.inMinutes}m ago';
@@ -563,9 +514,8 @@ class StoryItem extends StatelessWidget {
                   child: CircleAvatar(
                     radius: 25,
                     backgroundColor: EchoColors.secondary,
-                    backgroundImage: image.isNotEmpty
-                        ? NetworkImage(image)
-                        : null,
+                    backgroundImage:
+                        image.isNotEmpty ? NetworkImage(image) : null,
                     child: image.isEmpty
                         ? const Icon(
                             Icons.person_rounded,
@@ -575,7 +525,6 @@ class StoryItem extends StatelessWidget {
                         : null,
                   ),
                 ),
-
                 if (hasPlus)
                   Positioned(
                     right: 0,
@@ -596,9 +545,7 @@ class StoryItem extends StatelessWidget {
                   ),
               ],
             ),
-
             const SizedBox(height: 5),
-
             Text(
               isCurrentUser ? username : name,
               maxLines: 1,
@@ -638,9 +585,7 @@ class FeedTab extends StatelessWidget {
       decoration: BoxDecoration(
         border: Border(
           bottom: BorderSide(
-            color: selected
-                ? EchoColors.primary
-                : Colors.transparent,
+            color: selected ? EchoColors.primary : Colors.transparent,
             width: 2,
           ),
         ),
@@ -651,8 +596,7 @@ class FeedTab extends StatelessWidget {
           fontSize: 20,
           fontWeight:
               selected ? FontWeight.bold : FontWeight.normal,
-          color:
-              selected ? EchoColors.primary : Colors.black87,
+          color: selected ? EchoColors.primary : Colors.black87,
         ),
       ),
     );
@@ -664,6 +608,7 @@ class FeedTab extends StatelessWidget {
 // ============================================================
 
 class MusicPost extends StatelessWidget {
+  final String postId;
   final String username;
   final String time;
   final String profileImage;
@@ -677,6 +622,7 @@ class MusicPost extends StatelessWidget {
 
   const MusicPost({
     super.key,
+    required this.postId,
     required this.username,
     required this.time,
     required this.profileImage,
@@ -712,12 +658,9 @@ class MusicPost extends StatelessWidget {
                       )
                     : null,
               ),
-
               const SizedBox(width: 9),
-
               Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     username,
@@ -726,7 +669,6 @@ class MusicPost extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-
                   Text(
                     time,
                     style: const TextStyle(
@@ -736,56 +678,48 @@ class MusicPost extends StatelessWidget {
                   ),
                 ],
               ),
-
               const Spacer(),
-
-              const Icon(
-                Icons.more_horiz,
-                size: 22,
-              ),
+              const Icon(Icons.more_horiz, size: 22),
             ],
           ),
-
           const SizedBox(height: 11),
-
           Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ClipRRect(
-                borderRadius:
-                    BorderRadius.circular(3),
+                borderRadius: BorderRadius.circular(3),
                 child: Image.network(
                   albumImage,
                   width: 95,
                   height: 95,
                   fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      width: 95,
+                      height: 95,
+                      color: Colors.grey.shade200,
+                      child: const Icon(Icons.music_note_rounded),
+                    );
+                  },
                 ),
               ),
-
               const SizedBox(width: 11),
-
               Expanded(
                 child: SizedBox(
                   height: 95,
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         song,
                         maxLines: 2,
-                        overflow:
-                            TextOverflow.ellipsis,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           fontSize: 15,
-                          fontWeight:
-                              FontWeight.bold,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-
                       const SizedBox(height: 4),
-
                       Text(
                         artist,
                         style: const TextStyle(
@@ -793,57 +727,38 @@ class MusicPost extends StatelessWidget {
                           color: Colors.grey,
                         ),
                       ),
-
                       const SizedBox(height: 6),
-
                       Container(
-                        padding:
-                            const EdgeInsets.symmetric(
+                        padding: const EdgeInsets.symmetric(
                           horizontal: 9,
                           vertical: 3,
                         ),
-                        decoration:
-                            BoxDecoration(
-                          border: Border.all(
-                            color:
-                                EchoColors.primary,
-                          ),
-                          borderRadius:
-                              BorderRadius.circular(
-                            10,
-                          ),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: EchoColors.primary),
+                          borderRadius: BorderRadius.circular(10),
                         ),
                         child: Text(
                           tag,
-                          style:
-                              const TextStyle(
+                          style: const TextStyle(
                             fontSize: 11,
-                            color:
-                                EchoColors.primary,
+                            color: EchoColors.primary,
                           ),
                         ),
                       ),
-
                       const Spacer(),
-
                       const Row(
                         children: [
                           Icon(
-                            Icons
-                                .play_circle_outline,
+                            Icons.play_circle_outline,
                             size: 20,
-                            color:
-                                EchoColors.primary,
+                            color: EchoColors.primary,
                           ),
-
                           SizedBox(width: 5),
-
                           Text(
                             'Listen',
                             style: TextStyle(
                               fontSize: 11,
-                              color:
-                                  EchoColors.primary,
+                              color: EchoColors.primary,
                             ),
                           ),
                         ],
@@ -854,9 +769,7 @@ class MusicPost extends StatelessWidget {
               ),
             ],
           ),
-
           const SizedBox(height: 8),
-
           Text(
             caption,
             style: const TextStyle(
@@ -864,50 +777,12 @@ class MusicPost extends StatelessWidget {
               color: Colors.black87,
             ),
           ),
-
           const SizedBox(height: 8),
 
-          Row(
-            children: [
-              const Icon(
-                Icons.favorite_border_rounded,
-                size: 18,
-              ),
-
-              const SizedBox(width: 4),
-
-              Text(
-                likes,
-                style:
-                    const TextStyle(fontSize: 10),
-              ),
-
-              const SizedBox(width: 16),
-
-              const Icon(
-                Icons.chat_bubble_outline_rounded,
-                size: 17,
-              ),
-
-              const SizedBox(width: 4),
-
-              Text(
-                comments,
-                style:
-                    const TextStyle(fontSize: 10),
-              ),
-
-              const SizedBox(width: 16),
-
-              const Icon(
-                Icons.repeat,
-                size: 17,
-              ),
-            ],
-          ),
+          // WORKING LIKE, COMMENT, AND SAVE ACTIONS
+          PostInteractions(postId: postId),
 
           const SizedBox(height: 13),
-
           const Divider(
             height: 1,
             color: Color(0xFFE5E5E5),
@@ -923,6 +798,7 @@ class MusicPost extends StatelessWidget {
 // ============================================================
 
 class PlaylistPost extends StatelessWidget {
+  final String postId;
   final String username;
   final String time;
   final String profileImage;
@@ -935,6 +811,7 @@ class PlaylistPost extends StatelessWidget {
 
   const PlaylistPost({
     super.key,
+    required this.postId,
     required this.username,
     required this.time,
     required this.profileImage,
@@ -951,19 +828,16 @@ class PlaylistPost extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 14, 18, 0),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               CircleAvatar(
                 radius: 18,
-                backgroundColor:
-                    EchoColors.secondary,
-                backgroundImage:
-                    profileImage.isNotEmpty
-                        ? NetworkImage(profileImage)
-                        : null,
+                backgroundColor: EchoColors.secondary,
+                backgroundImage: profileImage.isNotEmpty
+                    ? NetworkImage(profileImage)
+                    : null,
                 child: profileImage.isEmpty
                     ? const Icon(
                         Icons.person_rounded,
@@ -972,12 +846,9 @@ class PlaylistPost extends StatelessWidget {
                       )
                     : null,
               ),
-
               const SizedBox(width: 9),
-
               Column(
-                crossAxisAlignment:
-                    CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     '$username shared a playlist',
@@ -986,7 +857,6 @@ class PlaylistPost extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-
                   Text(
                     time,
                     style: const TextStyle(
@@ -996,51 +866,44 @@ class PlaylistPost extends StatelessWidget {
                   ),
                 ],
               ),
-
               const Spacer(),
-
-              const Icon(
-                Icons.more_horiz,
-                size: 22,
-              ),
+              const Icon(Icons.more_horiz, size: 22),
             ],
           ),
-
           const SizedBox(height: 11),
-
           Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               ClipRRect(
-                borderRadius:
-                    BorderRadius.circular(3),
+                borderRadius: BorderRadius.circular(3),
                 child: Image.network(
                   albumImage,
                   width: 95,
                   height: 95,
                   fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      width: 95,
+                      height: 95,
+                      color: Colors.grey.shade200,
+                      child: const Icon(Icons.queue_music_rounded),
+                    );
+                  },
                 ),
               ),
-
               const SizedBox(width: 11),
-
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       playlistTitle,
                       style: const TextStyle(
                         fontSize: 15,
-                        fontWeight:
-                            FontWeight.bold,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
-
                     const SizedBox(height: 8),
-
                     Text(
                       subtitle,
                       style: const TextStyle(
@@ -1048,9 +911,7 @@ class PlaylistPost extends StatelessWidget {
                         color: Colors.black87,
                       ),
                     ),
-
                     const SizedBox(height: 11),
-
                     Text(
                       songs,
                       style: const TextStyle(
@@ -1063,47 +924,10 @@ class PlaylistPost extends StatelessWidget {
               ),
             ],
           ),
-
           const SizedBox(height: 8),
 
-          Row(
-            children: [
-              const Icon(
-                Icons.favorite_border_rounded,
-                size: 18,
-              ),
-
-              const SizedBox(width: 4),
-
-              Text(
-                likes,
-                style:
-                    const TextStyle(fontSize: 10),
-              ),
-
-              const SizedBox(width: 16),
-
-              const Icon(
-                Icons.chat_bubble_outline_rounded,
-                size: 17,
-              ),
-
-              const SizedBox(width: 4),
-
-              Text(
-                comments,
-                style:
-                    const TextStyle(fontSize: 10),
-              ),
-
-              const SizedBox(width: 16),
-
-              const Icon(
-                Icons.repeat,
-                size: 17,
-              ),
-            ],
-          ),
+          // WORKING LIKE, COMMENT, AND SAVE ACTIONS
+          PostInteractions(postId: postId),
 
           const SizedBox(height: 13),
         ],
@@ -1135,9 +959,7 @@ class BottomNavIcon extends StatelessWidget {
       icon: Icon(
         icon,
         size: 25,
-        color: selected
-            ? EchoColors.primary
-            : Colors.grey,
+        color: selected ? EchoColors.primary : Colors.grey,
       ),
     );
   }
