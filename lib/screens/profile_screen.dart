@@ -1,3 +1,4 @@
+
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import 'home_screen.dart';
 import 'search_screen.dart';
 import 'create_post_screen.dart';
 import 'message_screen.dart';
+import 'login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -26,7 +28,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   String get username {
     final metadata = currentUser?.userMetadata;
-
     final value = metadata?['username']?.toString();
 
     if (value != null && value.trim().isNotEmpty) {
@@ -172,17 +173,27 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // ============================================================
 
   Future<void> logout() async {
-    await Supabase.instance.client.auth.signOut();
+    try {
+      await Supabase.instance.client.auth.signOut();
 
-    if (!mounted) {
-      return;
+      if (!mounted) return;
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const LoginScreen(),
+        ),
+        (route) => false,
+      );
+    } catch (error) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Logout failed: $error'),
+        ),
+      );
     }
-
-    Navigator.pushAndRemoveUntil(
-      context,
-      MaterialPageRoute(builder: (context) => const HomeScreen()),
-      (route) => false,
-    );
   }
 
   // ============================================================
@@ -193,7 +204,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-
       body: SafeArea(
         child: Column(
           children: [
@@ -278,7 +288,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                               ),
                                               onTap: () {
                                                 Navigator.pop(context);
-
                                                 logout();
                                               },
                                             ),
@@ -303,6 +312,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           // ==================================================
                           // PROFILE PICTURE
                           // ==================================================
+
                           GestureDetector(
                             onTap: showProfilePictureOptions,
                             child: Stack(
@@ -345,6 +355,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           // ==================================================
                           // USERNAME
                           // ==================================================
+
                           Text(
                             username,
                             style: const TextStyle(
@@ -359,6 +370,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           // ==================================================
                           // EMAIL
                           // ==================================================
+
                           Text(
                             email,
                             style: const TextStyle(
@@ -372,6 +384,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           // ==================================================
                           // STATS
                           // ==================================================
+
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
@@ -389,6 +402,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     // ======================================================
                     // EDIT PROFILE
                     // ======================================================
+
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 20),
                       child: SizedBox(
@@ -425,6 +439,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     // ======================================================
                     // MUSIC PROFILE
                     // ======================================================
+
                     const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 20),
                       child: Align(
@@ -498,6 +513,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     // ======================================================
                     // MY POSTS
                     // ======================================================
+
                     const Padding(
                       padding: EdgeInsets.symmetric(horizontal: 20),
                       child: Align(
@@ -552,6 +568,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             //
             // HOME → SEARCH → + → MESSAGES → PROFILE
             // ============================================================
+
             Container(
               height: 66,
               decoration: const BoxDecoration(
